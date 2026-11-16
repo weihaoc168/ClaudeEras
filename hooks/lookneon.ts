@@ -80,29 +80,60 @@ export const WALLPAPERS: { value: DeskWallpaper; label: string; color: string }[
 
 export const wallColor = (w: DeskWallpaper): string => WALLPAPERS.find(x => x.value === w)?.color ?? '#24113d'
 
-// 32x32 neon-sign icons: a dark rounded tile with glowing tube lines in pink,
-// cyan and orange. Origin at 0,0. All original art.
-const NG = `<defs><filter id="ngGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1.1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`
-const tile = `<rect x="1" y="1" width="30" height="30" rx="8" fill="#1a0c2e" stroke="#ff4fa3" stroke-opacity=".35"/>`
-const neon = (body: string): string => `${NG}${tile}<g fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" filter="url(#ngGlow)">${body}</g>`
+// 32x32 icons that put the 1998 and early-2000s desktop shapes (a CRT monitor
+// on its stand, a tabbed folder, a ribbed bin, a window with a title bar and
+// close box) into glowing neon tubes over a dark tinted fill. Origin at 0,0.
+// All original art.
+const NG = `<defs><filter id="ngGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="1" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`
+const neon = (fill: string, body: string): string =>
+  `${NG}<g opacity=".55">${fill}</g><g fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" filter="url(#ngGlow)">${body}</g>`
+const PINK = '#ff5fae'
+const CYAN = '#5ff0ff'
+const ORANGE = '#ffb347'
 
 export const ICONS: Record<string, string> = {
-  computer: neon(`<rect x="7" y="7.5" width="18" height="12" rx="2" stroke="#5ff0ff"/><path d="M13 23.5h6M16 19.5v4" stroke="#ff5fae"/>`),
-  bin: neon(`<path d="M9.5 10.5h13M13 10.5V8.5h6v2M11 10.5l1 14h8l1-14" stroke="#5ff0ff"/><path d="M14.5 14v7M17.5 14v7" stroke="#ff5fae"/>`),
-  folder: neon(`<path d="M7 11.5V9h6l2 2.5h10v12H7z" stroke="#ffb347"/><path d="M7 14.5h18" stroke="#ff5fae"/>`),
-  terminal: neon(`<rect x="6.5" y="7.5" width="19" height="17" rx="3" stroke="#ff5fae"/><path d="M10 13l3.5 3-3.5 3" stroke="#5ff0ff"/><path class="blink" d="M16 19.5h5" stroke="#ffb347"/>`),
-  network: neon(`<circle cx="16" cy="9.5" r="2.6" stroke="#ff5fae"/><circle cx="9" cy="22.5" r="2.6" stroke="#5ff0ff"/><circle cx="23" cy="22.5" r="2.6" stroke="#5ff0ff"/><path d="M14.6 11.8L10.4 20.2M17.4 11.8l4.2 8.4M11.6 22.5h8.8" stroke="#ffb347"/>`),
-  globe: neon(`<circle cx="16" cy="16" r="9" stroke="#5ff0ff"/><path d="M7 16h18M16 7c-3.5 3-3.5 15 0 18M16 7c3.5 3 3.5 15 0 18" stroke="#ff5fae"/>`),
-  display: neon(`<rect x="7" y="7.5" width="18" height="12" rx="2" stroke="#ff5fae"/><path d="M8.5 16.5c2.5-3 4-3 6 0s4.5 1 8-2.5" stroke="#ffb347"/><path d="M13 23.5h6" stroke="#5ff0ff"/>`),
-  monitor: neon(`<path d="M7 22.5l4.5-6 4 3 5-8 4.5 5" stroke="#5ff0ff"/><path d="M7 25h18" stroke="#ff5fae"/>`),
-  spark: `<path d="M16 2l2.5 9.5L28 9l-7.5 6.5L28 22l-9.5-2.5L16 30l-2.5-10.5L4 22l7.5-6.5L4 9l9.5 2.5z" fill="#ffb347" stroke="#ff4fa3" stroke-width="1"/>`,
+  computer: neon(
+    `<rect x="3" y="2.5" width="26" height="19" rx="2.5" fill="#2a1240"/><rect x="5.5" y="5" width="21" height="14" rx="1" fill="#0d1a3a"/>`,
+    `<rect x="3" y="2.5" width="26" height="19" rx="2.5" stroke="${PINK}"/><rect x="5.5" y="5" width="21" height="14" rx="1" stroke="${CYAN}"/><path d="M8 8h7M8 10.5h10" stroke="${CYAN}" stroke-opacity=".7"/><path d="M12 21.5h8l1.5 4h-11zM6 29h20" stroke="${PINK}"/><path d="M21 27h3" stroke="${ORANGE}"/>`,
+  ),
+  bin: neon(
+    `<path d="M8 8h16l-2 21H10z" fill="#2a1240"/>`,
+    `<path d="M6 5.5h20M13 5.5V3h6v2.5M8 8h16l-2 21H10z" stroke="${CYAN}"/><path d="M12 11l.8 15M16 11v15M20 11l-.8 15" stroke="${PINK}"/>`,
+  ),
+  folder: neon(
+    `<path d="M2.5 13h27v14h-27z" fill="#3a1a2a"/>`,
+    `<path d="M2.5 8.5q0-2 2-2h7l2.5 3h13q2 0 2 2V27h-26.5z" stroke="${ORANGE}"/><path d="M7 8v-.5h16v5" stroke="${CYAN}" stroke-opacity=".8"/><path d="M2.5 13.5h27" stroke="${PINK}"/>`,
+  ),
+  terminal: neon(
+    `<rect x="2" y="4" width="28" height="24" rx="2.5" fill="#1a0c2e"/>`,
+    `<rect x="2" y="4" width="28" height="24" rx="2.5" stroke="${PINK}"/><path d="M2 9h28" stroke="${PINK}"/><rect x="24.5" y="5.5" width="3.5" height="2.2" rx=".6" stroke="${ORANGE}"/><path d="M6.5 14l3.5 2.5-3.5 2.5" stroke="${CYAN}"/><path class="blink" d="M12 19.5h5.5" stroke="${ORANGE}"/>`,
+  ),
+  network: neon(
+    `<rect x="2" y="3" width="13" height="10" rx="1.5" fill="#2a1240"/><rect x="17" y="3" width="13" height="10" rx="1.5" fill="#2a1240"/>`,
+    `<rect x="2" y="3" width="13" height="10" rx="1.5" stroke="${PINK}"/><rect x="17" y="3" width="13" height="10" rx="1.5" stroke="${PINK}"/><path d="M8.5 13v5h15v-5M16 18v4" stroke="${CYAN}"/><circle cx="16" cy="25.5" r="3.4" stroke="${ORANGE}"/>`,
+  ),
+  globe: neon(
+    `<circle cx="16" cy="16" r="13" fill="#0d1a3a"/>`,
+    `<circle cx="16" cy="16" r="13" stroke="${CYAN}"/><path d="M3 16h26M16 3c-5 4-5 22 0 26M16 3c5 4 5 22 0 26M5.5 9h21M5.5 23h21" stroke="${PINK}" stroke-opacity=".85"/>`,
+  ),
+  display: neon(
+    `<rect x="3" y="3" width="26" height="19" rx="2.5" fill="#2a1240"/>`,
+    `<rect x="3" y="3" width="26" height="19" rx="2.5" stroke="${PINK}"/><path d="M6 16c3-4 5-4 7.5 0s5 1 12.5-5" stroke="${ORANGE}"/><circle cx="21" cy="8.5" r="2" stroke="${ORANGE}"/><path d="M12 22h8l1.5 4h-11zM7 29h18" stroke="${CYAN}"/>`,
+  ),
+  monitor: neon(
+    `<rect x="3" y="3" width="26" height="24" rx="2.5" fill="#0d0618"/>`,
+    `<rect x="3" y="3" width="26" height="24" rx="2.5" stroke="${PINK}"/><path d="M5.5 22l5-6 4 3 5-9 3 4 3.5-5" stroke="${CYAN}"/>`,
+  ),
+  spark: `<path d="M16 2l2.5 9.5L28 9l-7.5 6.5L28 22l-9.5-2.5L16 30l-2.5-10.5L4 22l7.5-6.5L4 9l9.5 2.5z" fill="${ORANGE}" stroke="${PINK}" stroke-width="1"/>`,
 }
 
+// A desktop icon with its label; a selected one gets the 1998 dotted focus
+// outline, glowing pink.
 const iconAt = (name: string, x: number, y: number, label: string, selected = false): string => {
-  const w = label.length * 6.2 + 10
+  const w = label.length * 6.2 + 8
   return `<g transform="translate(${x},${y})"><g transform="translate(22,0)">${ICONS[name]}</g>
-<rect x="${38 - w / 2}" y="36" width="${w}" height="15" rx="7.5" fill="${selected ? '#ff4fa3' : 'none'}" fill-opacity=".85"/>
-<text x="38" y="47" text-anchor="middle" fill="#fff" stroke="#2a0a30" stroke-opacity=".7" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round" font-family="Segoe UI, sans-serif" font-size="11">${label}</text></g>`
+<rect x="${38 - w / 2}" y="36" width="${w}" height="15" fill="${selected ? '#ff4fa3' : 'none'}" fill-opacity=".35" ${selected ? 'stroke="#ff9ad0" stroke-dasharray="1.5 1.5"' : ''}/>
+<text x="38" y="47" text-anchor="middle" fill="#fff" stroke="#2a0a30" stroke-opacity=".7" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round" font-family="Tahoma, sans-serif" font-size="11">${label}</text></g>`
 }
 
 // A palm-tree silhouette: a curved, tapering trunk and a crown of drooping
@@ -235,25 +266,32 @@ export const sceneSvg = (s: DeskSettings): string => {
         iconAt('terminal', 0, 350, 'Claude Code', true),
       ].join('\n')}</g></g></g>`
     : ''
+  // The early-2000s taskbar layout (rounded start button, tray block) with the
+  // 1998 bevels (sunken task button, a grip between groups), lit in neon.
   const taskbar = s.taskbar
     ? `<g class="pin-b"><g transform="translate(0,${H})">
 <defs>
-<linearGradient id="tline" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff4fa3"/><stop offset=".5" stop-color="#ffb347"/><stop offset="1" stop-color="#5ff0ff"/></linearGradient>
-<linearGradient id="tpill" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff4fa3"/><stop offset="1" stop-color="#ff8a4a"/></linearGradient>
+<linearGradient id="tbar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1460"/><stop offset=".1" stop-color="#25103f"/><stop offset=".9" stop-color="#170a2a"/><stop offset="1" stop-color="#0f061c"/></linearGradient>
+<linearGradient id="tstart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8cc8"/><stop offset=".15" stop-color="#ff4fa3"/><stop offset=".85" stop-color="#e03a7a"/><stop offset="1" stop-color="#b0236e"/></linearGradient>
+<linearGradient id="ttray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c1a5a"/><stop offset="1" stop-color="#1a0f3a"/></linearGradient>
+<filter id="tglow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<rect x="-1000" y="-36" width="${W + 2000}" height="36" fill="#140a24" fill-opacity=".82"/>
-<rect x="-1000" y="-36" width="${W + 2000}" height="2" fill="url(#tline)"/>
-<g class="pin-l"><g transform="translate(6,-31) scale(1.15)">
-<rect width="78" height="22" rx="11" fill="url(#tpill)"/>
-<g transform="translate(5,3) scale(.5)">${ICONS.spark}</g>
-<text x="26" y="15.5" font-family="Segoe UI, sans-serif" font-weight="bold" font-size="12" fill="#fff">Start</text>
-<g transform="translate(88,0) scale(.69)">${ICONS.globe}</g><g transform="translate(112,0) scale(.69)">${ICONS.folder}</g><g transform="translate(136,0) scale(.69)">${ICONS.terminal}</g>
-<g transform="translate(166,0)"><rect width="160" height="22" rx="6" fill="#2c1748" stroke="#ff4fa3" stroke-opacity=".7"/><g transform="translate(4,2) scale(.56)">${ICONS.terminal}</g><text x="28" y="15" font-family="Segoe UI, sans-serif" font-size="11" fill="#fbe6ff">Claude Code</text></g>
+<rect x="-1000" y="-34" width="${W + 2000}" height="34" fill="url(#tbar)" fill-opacity=".92"/>
+<rect x="-1000" y="-34" width="${W + 2000}" height="1.5" fill="#ff5fae" filter="url(#tglow)"/>
+<g class="pin-l"><g transform="translate(0,-34) scale(1.15)">
+<path d="M0 0H82Q96 0 96 14.8Q96 29.6 82 29.6H0z" fill="url(#tstart)" filter="url(#tglow)"/>
+<path d="M0 1H81Q93 1 94 9" stroke="#ffd0e8" stroke-opacity=".8" fill="none"/>
+<g transform="translate(7,5) scale(.6)">${ICONS.spark}</g>
+<text x="30" y="20.5" font-family="Trebuchet MS, Tahoma, sans-serif" font-style="italic" font-weight="bold" font-size="16" fill="#fff" stroke="#6a0f3a" stroke-opacity=".6" stroke-width="1.6" paint-order="stroke">start</text>
+<rect x="101" y="5" width="1" height="19.6" fill="#ff5fae" opacity=".7"/><rect x="103" y="5" width="1" height="19.6" fill="#5ff0ff" opacity=".5"/>
+<g transform="translate(108,6) scale(.56)">${ICONS.globe}</g><g transform="translate(128,6) scale(.56)">${ICONS.folder}</g><g transform="translate(148,6) scale(.56)">${ICONS.terminal}</g>
+<g transform="translate(174,3)"><rect width="170" height="23.6" fill="#120822" stroke="#5ff0ff" stroke-opacity=".8" filter="url(#tglow)"/><path d="M.5 23V.5H169" stroke="#05020c" fill="none"/><g transform="translate(5,4) scale(.5)">${ICONS.terminal}</g><text x="26" y="16" font-family="Tahoma, sans-serif" font-weight="bold" font-size="11" fill="#fbe6ff">Claude Code</text></g>
 </g></g>
-<g class="pin-r"><g transform="translate(${W - 116},-31) scale(1.15)">
-<rect width="94" height="22" rx="11" fill="#2c1748" stroke="#5ff0ff" stroke-opacity=".5"/>
-<g transform="translate(4,2) scale(.56)">${ICONS.network}</g>
-<text x="30" y="15" font-family="Segoe UI, sans-serif" font-size="11" fill="#ffd27a">Ready<tspan class="blink">_</tspan></text></g></g>
+<g class="pin-r"><g transform="translate(${W - 112},-34) scale(1.15)">
+<rect width="100" height="29.6" fill="url(#ttray)"/><rect width="1.5" height="29.6" fill="#5ff0ff" filter="url(#tglow)"/>
+<rect x="5" y="4" width="90" height="21.6" fill="none" stroke="#ff5fae" stroke-opacity=".6"/>
+<path d="M11 11h3l4-4v14l-4-4h-3z" fill="none" stroke="#ffb347" stroke-width="1.2" filter="url(#tglow)"/><g transform="translate(22,7) scale(.44)">${ICONS.network}</g>
+<text x="44" y="19" font-family="Tahoma, sans-serif" font-size="11" fill="#ffd27a">Ready<tspan class="blink">_</tspan></text></g></g>
 </g></g>`
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">

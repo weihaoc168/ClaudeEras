@@ -38,7 +38,7 @@ type WinButtonArgs = { id: string; label: string; isActive?: boolean; onPress: (
 const winButton = (ui: Ui, c: Chrome, a: WinButtonArgs) => {
   const { Box, Button } = ui
   return (
-    <Box key={a.id} backgroundColor={FACE} borderStyle={c.border} borderColor={a.isActive ? c.selected : c.buttonEdge} paddingX={1}>
+    <Box key={a.id} backgroundColor={FACE} borderStyle={c.buttonBorder} borderColor={a.isActive ? c.selected : c.buttonEdge} paddingX={1}>
       <Button key={`${a.id}-b`} plain label={a.isActive ? `▸ ${a.label}` : a.label} onPress={a.onPress} />
     </Box>
   )
@@ -48,7 +48,7 @@ const winButton = (ui: Ui, c: Chrome, a: WinButtonArgs) => {
 const closeBox = (ui: Ui, c: Chrome, id: string, onPress: () => unknown) => {
   const { Box, Button } = ui
   return (
-    <Box key={id} backgroundColor={c.close} borderStyle={c.border} borderColor={c.closeEdge} marginY="xs" marginRight="xs" paddingX="xs">
+    <Box key={id} backgroundColor={c.close} borderStyle={c.buttonBorder} borderColor={c.closeEdge} marginY="xs" marginRight="xs" paddingX="xs">
       <Button key={`${id}-b`} plain label="✕" onPress={onPress} />
     </Box>
   )
@@ -261,7 +261,7 @@ export const register: Register = on => {
         )}
         <Box flexDirection="row" alignItems="center" gap="xs">
           {icon('spark')}
-          <Box key="start-box" backgroundColor={c.startFace} borderStyle={c.border} borderColor={isOpen ? WHITE : c.startEdge} paddingX={1}>
+          <Box key="start-box" backgroundColor={c.startFace} borderStyle={c.buttonBorder} borderColor={isOpen ? WHITE : c.startEdge} paddingX={1}>
             <Button key="start" plain label={isOpen ? `${c.startLabel} ▾` : c.startLabel} onPress={() => update($, isStartOpen, v => !v)} />
           </Box>
           <Button key="qs-monitor" label="System Monitor" dimColor onPress={() => openMonitor($)} />

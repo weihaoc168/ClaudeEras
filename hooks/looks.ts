@@ -10,6 +10,7 @@ import * as lxp from './lookxp'
 // follows the mode, so the app's own button text always stands out on them.
 export type Chrome = {
   border: 'single' | 'round'
+  buttonBorder: 'single' | 'round'
   body: string
   shadow: string
   frame: string
@@ -52,6 +53,7 @@ export const STYLES: Record<DeskStyle, Look> = {
     label: 'Windows 98',
     chrome: {
       border: 'single',
+      buttonBorder: 'single',
       body: '#c0c0c0',
       shadow: '#808080',
       frame: '#000000',
@@ -75,6 +77,7 @@ export const STYLES: Record<DeskStyle, Look> = {
     label: 'XP',
     chrome: {
       border: 'round',
+      buttonBorder: 'round',
       body: '#ece9d8',
       shadow: '#7f9db9',
       frame: '#0831d9',
@@ -96,8 +99,11 @@ export const STYLES: Record<DeskStyle, Look> = {
   neon: {
     ...lneon,
     label: 'Neon Coast',
+    // Square 1998 window frames, rounded early-2000s buttons, start button and
+    // close box, all lit in neon colors.
     chrome: {
-      border: 'round',
+      border: 'single',
+      buttonBorder: 'round',
       body: '#170c2a',
       shadow: '#6a4a9a',
       frame: '#ff4fa3',
@@ -107,7 +113,7 @@ export const STYLES: Record<DeskStyle, Look> = {
       closeEdge: '#ffffff',
       startFace: '#ff4fa3',
       startEdge: '#b0236e',
-      startLabel: 'Start',
+      startLabel: 'start',
       hover: '#ff8cc6',
       ink: '#f6e9ff',
       panel: '#24143c',
