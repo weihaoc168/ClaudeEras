@@ -17,8 +17,10 @@
 ## ⚡ Install
 
 ```bash
-claude plugin install claudeeras --marketplace <path to this folder>
+claude plugin install claudeeras --marketplace weihaoc168/ClaudeEras
 ```
+
+At the prompt of a terminal session: `/plugin install claudeeras --marketplace weihaoc168/ClaudeEras`. In the desktop app: click **+** next to the prompt box → **Plugins** → **Add marketplace** with `weihaoc168/ClaudeEras` → **Add plugin**.
 
 Use it instead of the single-style mods, not alongside them: uninstall `claude98`, `claudexp` or `claudeneoncoast` first.
 
