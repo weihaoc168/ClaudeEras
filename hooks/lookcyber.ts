@@ -2,8 +2,9 @@ import type { ThemeSetArgs } from 'claude-code'
 
 import type { DeskScheme, DeskSettings, DeskWallpaper } from '../types'
 import { makeColors } from './make-colors.js'
+import { overlookArt } from './overlook'
 
-// Claude Cyber color schemes: an original neon-noir look. A cool steel light
+// Claude Blade color schemes: an original neon-noir look. A cool steel light
 // mode and a near-black dark mode, each lit by one hard neon accent.
 const SCHEMES: Record<DeskScheme, { label: string; accent: string; dark: string; s0: string; s1: string; s2: string }> = {
   standard: { label: 'Acid', accent: '#7a7000', dark: '#f5e642', s0: '#eceff1', s1: '#f3f5f6', s2: '#fbfcfc' },
@@ -21,7 +22,7 @@ export const chromeOf = (scheme: DeskScheme): string => SCHEMES[scheme].s1
 const build = (key: DeskScheme) => {
   const s = SCHEMES[key]
   return makeColors({
-    label: `ClaudeEras Claude Cyber - ${s.label}`,
+    label: `ClaudeEras Claude Blade - ${s.label}`,
     roles: { accent: s.accent, danger: '#b00020', success: '#00704a', warning: '#8a6a00', pro: '#7a1fd6' },
     light: {
       gray: {
@@ -78,11 +79,12 @@ export const lookFor = (s: DeskSettings): ThemeSetArgs => ({
   colors: THEMES[s.scheme].theme,
   // The glass takes the app's own panel color: frosted enough that text reads
   // over the neon, thin enough that the city still glows through.
-  backdrop: { scene: 'claudecyber', glass: { blur: 8, opacity: 0.5 } },
+  backdrop: { scene: 'claudeblade', glass: { blur: 8, opacity: 0.5 } },
 })
 
 export const WALLPAPERS: { value: DeskWallpaper; label: string; color: string }[] = [
   { value: 'city', label: 'Rain City', color: '#0a0b16' },
+  { value: 'overlook', label: 'Overlook (pixel art)', color: '#1a1842' },
   { value: 'void', label: 'Void', color: '#05070a' },
   { value: 'black', label: 'Black', color: '#000000' },
   { value: 'custom', label: 'Your own image (custom/wallpaper.png or .jpg)', color: '#05070a' },
@@ -288,6 +290,8 @@ export const sceneSvg = (s: DeskSettings): string => {
   const ground =
     s.wallpaper === 'city'
       ? `<g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)">${cityArt('m', true, 4000)}</g>`
+      : s.wallpaper === 'overlook'
+        ? `<g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)">${overlookArt('o', true, 4000)}</g>`
       : s.wallpaper === 'custom'
         ? customImage !== undefined
           ? `<rect width="${W}" height="${H}" fill="#05070a"/><g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)"><image href="data:${customImage.mime};base64,${customImage.base64}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet" ${customImage.mime === 'image/png' ? 'style="image-rendering:pixelated"' : ''}/></g>`
@@ -325,7 +329,7 @@ export const sceneSvg = (s: DeskSettings): string => {
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
 <defs><pattern id="vgrid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="${CYAN}" stroke-opacity=".08"/></pattern></defs>
-<style>.blink{animation:b 1.1s steps(1) infinite}@keyframes b{50%{opacity:0}}.rain{animation:rn .5s linear infinite}@keyframes rn{from{transform:translate(0,-60px)}to{transform:translate(-15px,0)}}.trail0{animation:t0 7s ease-in-out infinite alternate}@keyframes t0{to{transform:translateX(60px)}}.trail1{animation:t1 9s ease-in-out infinite alternate}@keyframes t1{to{transform:translateX(-70px)}}.glitch{animation:g 5s steps(1) infinite}@keyframes g{0%,92%,100%{transform:translate(560px,260px)}93%{transform:translate(566px,258px)}95%{transform:translate(554px,262px)}97%{transform:translate(561px,259px)}}${edgeRules()}</style>
+<style>.blink{animation:b 1.1s steps(1) infinite}@keyframes b{50%{opacity:0}}.rain{animation:rn .5s linear infinite}@keyframes rn{from{transform:translate(0,-60px)}to{transform:translate(-15px,0)}}.trail0{animation:t0 7s ease-in-out infinite alternate}@keyframes t0{to{transform:translateX(60px)}}.trail1{animation:t1 9s ease-in-out infinite alternate}@keyframes t1{to{transform:translateX(-70px)}}.hover{animation:hv 3s steps(4) infinite alternate}@keyframes hv{to{transform:translateY(-16px)}}.climb{animation:cl 12s steps(24) infinite}@keyframes cl{to{transform:translateY(-200px)}}.glitch{animation:g 5s steps(1) infinite}@keyframes g{0%,92%,100%{transform:translate(560px,260px)}93%{transform:translate(566px,258px)}95%{transform:translate(554px,262px)}97%{transform:translate(561px,259px)}}${edgeRules()}</style>
 ${ground}
 ${icons}
 ${taskbar}
@@ -345,6 +349,8 @@ export const previewSvg = (s: DeskSettings): string => {
 ${
     s.wallpaper === 'city'
       ? `<svg x="32" y="16" width="136" height="100" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">${cityArt('p', false)}</svg>`
+      : s.wallpaper === 'overlook'
+        ? `<svg x="32" y="16" width="136" height="100" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">${overlookArt('q', false)}</svg>`
       : s.wallpaper === 'custom'
         ? `<rect x="32" y="16" width="136" height="100" fill="#05070a"/><text x="100" y="62" text-anchor="middle" font-family="Consolas, monospace" font-size="9" fill="${CYAN}">YOUR OWN IMAGE</text><text x="100" y="76" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#7fa3b8">custom/wallpaper.jpg</text>`
         : `<rect x="32" y="16" width="136" height="100" fill="${wallColor(s.wallpaper)}"/>`

@@ -128,7 +128,7 @@ Object.assign(STYLES, {
 
 STYLES.cyber = {
   ...lcyber,
-  label: 'Claude Cyber',
+  label: 'Claude Blade',
   // Hard-edged HUD chrome: square frames in cyan, acid-yellow button edges,
   // a magenta selection and a red close box on near-black panels.
   chrome: {
