@@ -162,7 +162,7 @@ const palm = (x: number, y: number, k: number, lean: number): string => {
 // fine film grain. Drawn in a 1600x1000 box; with a bleed the sky, sea and
 // sand carry on past every edge so the art can be zoomed out. Gradients are in
 // user space so they don't stretch with it.
-const coastArt = (p: string, isAnimated: boolean, bleed = 0): string => {
+const coastArt = (p: string, isAnimated: boolean, bleed = 0, withGrain = true): string => {
   const x0 = -bleed
   const x1 = 1600 + bleed
   const top = -bleed
@@ -212,7 +212,7 @@ const coastArt = (p: string, isAnimated: boolean, bleed = 0): string => {
 <path d="M200 884C380 866 560 872 760 900" stroke="#ff9a8a" stroke-opacity=".25" stroke-width="3" fill="none"/>
 <g fill="#0d0618">${palm(110, 960, 1.05, -0.35)}${palm(250, 990, 0.8, 0.25)}${palm(1500, 975, 0.95, 0.4)}</g>
 <g stroke="#1a0a24" stroke-width="2.4" fill="none" stroke-linecap="round"><path d="M640 300l10 6 10-6"/><path d="M690 280l8 5 8-5"/><path d="M1320 250l9 5 9-5"/></g>
-<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${foot - top}" filter="url(#${p}grain)"/>`
+${withGrain ? `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${foot - top}" filter="url(#${p}grain)"/>` : ''}`
 }
 
 export const ZOOMS = [
@@ -237,14 +237,14 @@ const edgeRules = (): string => {
   for (const ar of [1.7, 1.8, 1.9, 2.0, 2.2, 2.4, 2.8, 3.4]) {
     const crop = Math.ceil((H - W / ar) / 2)
     rules.push(
-      `@media (max-aspect-ratio:${Math.round(ar * 100)}/100) and (min-aspect-ratio:1600/1000){.pin-t{transform:translateY(${crop}px)}.pin-b{transform:translateY(-${crop}px)}}`,
+      `@media (max-aspect-ratio:${Math.round(ar * 100)}/100) and (min-aspect-ratio:1600/1000){.pin-t{transform:translateY(${crop}px)}.pin-b{transform:translateY(-${crop}px)}.unpin-t{transform:translateY(-${crop}px)}.unpin-b{transform:translateY(${crop}px)}}`,
     )
   }
   // Narrower than 16:10: left and right are cropped by (W - H*ar) / 2.
   for (const ar of [1.5, 1.4, 1.3, 1.2, 1.0, 0.8, 0.6, 0.45]) {
     const crop = Math.ceil((W - H * ar) / 2)
     rules.push(
-      `@media (min-aspect-ratio:${Math.round(ar * 100)}/100) and (max-aspect-ratio:1600/1000){.pin-l{transform:translateX(${crop}px)}.pin-r{transform:translateX(-${crop}px)}}`,
+      `@media (min-aspect-ratio:${Math.round(ar * 100)}/100) and (max-aspect-ratio:1600/1000){.pin-l{transform:translateX(${crop}px)}.pin-r{transform:translateX(-${crop}px)}.unpin-l{transform:translateX(-${crop}px)}.unpin-r{transform:translateX(${crop}px)}}`,
     )
   }
   // Later rules win, so put the tightest band last.
@@ -254,7 +254,7 @@ const edgeRules = (): string => {
 export const sceneSvg = (s: DeskSettings): string => {
   const ground =
     s.wallpaper === 'coast'
-      ? `<g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)">${coastArt('m', true, 4000)}</g>`
+      ? `<g id="ground"><g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)">${coastArt('m', true, 4000, false)}</g></g><g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)"><rect x="-4000" y="-4000" width="9600" height="9000" filter="url(#mgrain)"/></g>`
       : `<rect width="${W}" height="${H}" fill="${wallColor(s.wallpaper)}"/>`
   const icons = s.icons
     ? `<g class="pin-t"><g class="pin-l"><g transform="translate(6,8) scale(1.15)">${[
@@ -266,51 +266,79 @@ export const sceneSvg = (s: DeskSettings): string => {
         iconAt('terminal', 0, 350, 'Claude Code', true),
       ].join('\n')}</g></g></g>`
     : ''
-  // A floating liquid-glass taskbar: round glass buttons and capsules with a
-  // frosted fill, a bright rim, a specular highlight and a soft shadow, lifted
-  // off the bottom edge so the sunset shows between them. The left group pins
-  // to the left edge and the tray to the right, at any window shape.
-  const glassCapsule = (x: number, y: number, w: number, h: number, tint: string): string => {
+  // A floating liquid-glass taskbar. Each round button and capsule shows the
+  // scene that lies behind it: a copy of the ground, clipped to the shape,
+  // frosted (blurred, saturated, brightened) in the middle and only lightly
+  // blurred but rippled along a thin rim, the way light bends at the rounded
+  // edge of a glass blob. Over that sit a bright rim, a specular streak, a
+  // caustic glow at the bottom and a soft drop shadow. The left group pins to
+  // the left edge and the tray to the right, at any window shape.
+  const rr = (x: number, y: number, w: number, h: number, r: number): string =>
+    `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x + r} ${y}z`
+  const ring = (x: number, y: number, w: number, h: number, t: number): string =>
+    `${rr(x, y, w, h, h / 2)}${rr(x + t, y + t, w - 2 * t, h - 2 * t, h / 2 - t)}`
+  type Piece = [number, number, number, number]
+  // Puts a copy of the ground back in scene space from inside a pinned group
+  // whose own transform is pin, translate(0,H), pin, translate(tx,ty), scale(k).
+  const behind = (tx: number, ty: number, k: number, side: 'l' | 'r') =>
+    `<g transform="scale(${(1 / k).toFixed(6)}) translate(${-tx},${-ty})"><g class="unpin-${side}"><g transform="translate(0,${-H})"><g class="unpin-b"><use href="#ground"/></g></g></g></g>`
+  const glassGroup = (id: string, pieces: Piece[], tx: number, ty: number, k: number, side: 'l' | 'r'): string => {
+    const shapes = pieces.map(([x, y, w, h]) => `<path d="${rr(x, y, w, h, h / 2)}"/>`).join('')
+    const rings = pieces.map(([x, y, w, h]) => `<path d="${ring(x, y, w, h, 3.2)}" fill-rule="evenodd" clip-rule="evenodd"/>`).join('')
+    const hasGround = s.wallpaper === 'coast'
+    return `<clipPath id="${id}In">${shapes}</clipPath><clipPath id="${id}Rim">${rings}</clipPath>
+${pieces.map(([x, y, w, h]) => `<path d="${rr(x, y + 5, w, h, h / 2)}" fill="#0a0414" opacity=".4" filter="url(#gShadow)"/>`).join('')}
+${hasGround ? `<g clip-path="url(#${id}In)"><g filter="url(#gFrost)">${behind(tx, ty, k, side)}</g></g>
+<g clip-path="url(#${id}Rim)"><g filter="url(#gBend)">${behind(tx, ty, k, side)}</g></g>` : ''}
+${pieces
+  .map(([x, y, w, h]) => {
     const r = h / 2
-    return `<rect x="${x}" y="${y + 5}" width="${w}" height="${h}" rx="${r}" fill="#0a0414" opacity=".35" filter="url(#gShadow)"/>
-<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#gFill)"/>
-<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${tint}" opacity=".16"/>
-<rect x="${x + 0.6}" y="${y + 0.6}" width="${w - 1.2}" height="${h - 1.2}" rx="${r - 0.6}" fill="none" stroke="url(#gRim)" stroke-width="1.2"/>
-<rect x="${x + r * 0.55}" y="${y + 2.2}" width="${w - r * 1.1}" height="${h * 0.32}" rx="${h * 0.16}" fill="url(#gSpec)"/>`
+    return `<path d="${rr(x, y, w, h, r)}" fill="url(#gTint)"/>
+<path d="${rr(x, y, w, h, r)}" fill="url(#gCaustic)"/>
+<path d="${rr(x + 0.6, y + 0.6, w - 1.2, h - 1.2, r - 0.6)}" fill="none" stroke="url(#gRim)" stroke-width="1.3"/>
+<path d="${rr(x + 1.8, y + 1.8, w - 3.6, h - 3.6, r - 1.8)}" fill="none" stroke="#ffffff" stroke-opacity=".12" stroke-width="1"/>
+<path d="${rr(x + r * 0.5, y + 2.4, w - r, h * 0.3, h * 0.15)}" fill="url(#gSpec)"/>
+<ellipse cx="${x + w * 0.5}" cy="${y + h - 4}" rx="${w * 0.32}" ry="2" fill="#ffe0f0" opacity=".35" filter="url(#gSoft)"/>`
+  })
+  .join('')}`
   }
-  const glassOrb = (cx: number, cy: number, r: number, fill: string): string =>
-    `<circle cx="${cx}" cy="${cy + 4}" r="${r}" fill="#0a0414" opacity=".35" filter="url(#gShadow)"/>
-<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>
-<circle cx="${cx}" cy="${cy}" r="${r - 0.6}" fill="none" stroke="url(#gRim)" stroke-width="1.2"/>
-<ellipse cx="${cx}" cy="${cy - r * 0.48}" rx="${r * 0.62}" ry="${r * 0.3}" fill="url(#gSpec)"/>`
+  const button = (cx: number, cy: number, r: number, fill: string): string =>
+    `<circle cx="${cx}" cy="${cy + 2}" r="${r}" fill="#0a0414" opacity=".3" filter="url(#gSoft)"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/><circle cx="${cx}" cy="${cy}" r="${r - 0.5}" fill="none" stroke="url(#gRim)" stroke-width="1"/><ellipse cx="${cx}" cy="${cy - r * 0.5}" rx="${r * 0.6}" ry="${r * 0.28}" fill="url(#gSpec)"/>`
+  const LTX = 14
+  const LTY = -62
+  const K = 1.15
+  const RTX = W - 150
   const taskbar = s.taskbar
     ? `<g class="pin-b"><g transform="translate(0,${H})">
 <defs>
-<linearGradient id="gFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".1"/><stop offset="1" stop-color="#ffffff" stop-opacity=".16"/></linearGradient>
-<linearGradient id="gRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".85"/><stop offset=".45" stop-color="#ffffff" stop-opacity=".18"/><stop offset="1" stop-color="#ffd0ec" stop-opacity=".55"/></linearGradient>
-<linearGradient id="gSpec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".6"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
-<radialGradient id="gStart" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#ffc0e0" stop-opacity=".95"/><stop offset=".45" stop-color="#ff4fa3" stop-opacity=".85"/><stop offset="1" stop-color="#ff8a4a" stop-opacity=".8"/></radialGradient>
-<radialGradient id="gBtn" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff" stop-opacity=".3"/><stop offset="1" stop-color="#ffffff" stop-opacity=".08"/></radialGradient>
-<filter id="gShadow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+<linearGradient id="gTint" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".18"/><stop offset=".55" stop-color="#ffffff" stop-opacity=".03"/><stop offset="1" stop-color="#ffffff" stop-opacity=".1"/></linearGradient>
+<linearGradient id="gCaustic" x1="0" y1="0" x2="0" y2="1"><stop offset=".6" stop-color="#ff9ad0" stop-opacity="0"/><stop offset="1" stop-color="#ffb0d8" stop-opacity=".22"/></linearGradient>
+<linearGradient id="gRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset=".35" stop-color="#ffffff" stop-opacity=".25"/><stop offset=".7" stop-color="#ffffff" stop-opacity=".08"/><stop offset="1" stop-color="#ffd6ee" stop-opacity=".7"/></linearGradient>
+<linearGradient id="gSpec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".7"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<radialGradient id="gStart" cx=".38" cy=".3" r=".85"><stop offset="0" stop-color="#ffd0ea" stop-opacity=".75"/><stop offset=".5" stop-color="#ff4fa3" stop-opacity=".55"/><stop offset="1" stop-color="#ff8a4a" stop-opacity=".55"/></radialGradient>
+<radialGradient id="gBtn" cx=".4" cy=".3" r=".85"><stop offset="0" stop-color="#ffffff" stop-opacity=".28"/><stop offset="1" stop-color="#ffffff" stop-opacity=".04"/></radialGradient>
+<filter id="gFrost" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="7"/><feColorMatrix type="saturate" values="1.6"/><feComponentTransfer><feFuncR type="linear" slope="1.12" intercept=".03"/><feFuncG type="linear" slope="1.12" intercept=".03"/><feFuncB type="linear" slope="1.12" intercept=".04"/></feComponentTransfer></filter>
+<filter id="gBend" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".035 .09" numOctaves="2" seed="11" result="n"/><feGaussianBlur in="SourceGraphic" stdDeviation="1.4" result="b"/><feDisplacementMap in="b" in2="n" scale="16" xChannelSelector="R" yChannelSelector="G"/><feColorMatrix type="saturate" values="1.8"/><feComponentTransfer><feFuncR type="linear" slope="1.25"/><feFuncG type="linear" slope="1.25"/><feFuncB type="linear" slope="1.25"/></feComponentTransfer></filter>
+<filter id="gShadow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="5"/></filter>
+<filter id="gSoft" x="-50%" y="-200%" width="200%" height="500%"><feGaussianBlur stdDeviation="1.6"/></filter>
 <filter id="gDot" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<g class="pin-l"><g transform="translate(14,-62) scale(1.15)">
-${glassOrb(22, 22, 21, 'url(#gStart)')}
+<g class="pin-l"><g transform="translate(${LTX},${LTY}) scale(${K})">
+${glassGroup('gL', [[1, 1, 42, 42], [52, 4, 108, 36], [170, 4, 150, 36]], LTX, LTY, K, 'l')}
+<circle cx="22" cy="22" r="17" fill="url(#gStart)"/>
 <g transform="translate(11,11) scale(.7)">${ICONS.spark}</g>
-${glassCapsule(52, 4, 108, 36, '#5ff0ff')}
-${glassOrb(73, 22, 13.5, 'url(#gBtn)')}<g transform="translate(64,13) scale(.56)">${ICONS.globe}</g>
-${glassOrb(106, 22, 13.5, 'url(#gBtn)')}<g transform="translate(97,13) scale(.56)">${ICONS.folder}</g>
-${glassOrb(139, 22, 13.5, 'url(#gBtn)')}<g transform="translate(130,13) scale(.56)">${ICONS.terminal}</g>
-${glassCapsule(170, 4, 150, 36, '#ff4fa3')}
+${button(73, 22, 13, 'url(#gBtn)')}<g transform="translate(64,13) scale(.56)">${ICONS.globe}</g>
+${button(106, 22, 13, 'url(#gBtn)')}<g transform="translate(97,13) scale(.56)">${ICONS.folder}</g>
+${button(139, 22, 13, 'url(#gBtn)')}<g transform="translate(130,13) scale(.56)">${ICONS.terminal}</g>
 <g transform="translate(182,13) scale(.56)">${ICONS.terminal}</g>
-<text x="205" y="26.5" font-family="Segoe UI, sans-serif" font-weight="600" font-size="12" fill="#fff">Claude Code</text>
+<text x="205" y="26.5" font-family="Segoe UI, sans-serif" font-weight="600" font-size="12" fill="#fff" stroke="#3a0a30" stroke-opacity=".35" stroke-width="2" paint-order="stroke">Claude Code</text>
 <circle cx="245" cy="47" r="2.2" fill="#ffd27a" filter="url(#gDot)"/>
 </g></g>
-<g class="pin-r"><g transform="translate(${W - 150},-62) scale(1.15)">
-${glassCapsule(0, 4, 116, 36, '#ffb347')}
+<g class="pin-r"><g transform="translate(${RTX},${LTY}) scale(${K})">
+${glassGroup('gR', [[0, 4, 116, 36]], RTX, LTY, K, 'r')}
 <path d="M16 18h3l4-4v16l-4-4h-3z" fill="none" stroke="#ffd27a" stroke-width="1.3" stroke-linejoin="round"/>
 <g transform="translate(29,13) scale(.5)">${ICONS.network}</g>
-<text x="52" y="26.5" font-family="Segoe UI, sans-serif" font-size="12" fill="#ffe6b0">Ready<tspan class="blink">_</tspan></text>
+<text x="52" y="26.5" font-family="Segoe UI, sans-serif" font-size="12" fill="#ffe6b0" stroke="#3a0a30" stroke-opacity=".35" stroke-width="2" paint-order="stroke">Ready<tspan class="blink">_</tspan></text>
 </g></g>
 </g></g>`
     : ''
