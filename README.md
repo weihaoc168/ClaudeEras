@@ -12,7 +12,7 @@
 | --- | --- | --- |
 | **Windows 98** | Classic plain teal, pixel icons, grey taskbar and Start button | Square silver windows, black frames |
 | **XP** | A rolling green meadow, glossy icons, blue taskbar with a green start button | Cream windows, rounded blue frames, red close box |
-| **Neon Coast** | A softly realistic pink, purple and orange sunset over the sea with palms, neon icons, a glass taskbar | Night-purple windows, hot-pink frames |
+| **Neon Coast** | A softly realistic pink, purple and orange sunset over the sea with palms, neon retro icons, a floating liquid-glass taskbar | Night-purple windows, hot-pink frames |
 
 ## ⚡ Install
 

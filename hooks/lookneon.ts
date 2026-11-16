@@ -266,32 +266,52 @@ export const sceneSvg = (s: DeskSettings): string => {
         iconAt('terminal', 0, 350, 'Claude Code', true),
       ].join('\n')}</g></g></g>`
     : ''
-  // The early-2000s taskbar layout (rounded start button, tray block) with the
-  // 1998 bevels (sunken task button, a grip between groups), lit in neon.
+  // A floating liquid-glass taskbar: round glass buttons and capsules with a
+  // frosted fill, a bright rim, a specular highlight and a soft shadow, lifted
+  // off the bottom edge so the sunset shows between them. The left group pins
+  // to the left edge and the tray to the right, at any window shape.
+  const glassCapsule = (x: number, y: number, w: number, h: number, tint: string): string => {
+    const r = h / 2
+    return `<rect x="${x}" y="${y + 5}" width="${w}" height="${h}" rx="${r}" fill="#0a0414" opacity=".35" filter="url(#gShadow)"/>
+<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#gFill)"/>
+<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${tint}" opacity=".16"/>
+<rect x="${x + 0.6}" y="${y + 0.6}" width="${w - 1.2}" height="${h - 1.2}" rx="${r - 0.6}" fill="none" stroke="url(#gRim)" stroke-width="1.2"/>
+<rect x="${x + r * 0.55}" y="${y + 2.2}" width="${w - r * 1.1}" height="${h * 0.32}" rx="${h * 0.16}" fill="url(#gSpec)"/>`
+  }
+  const glassOrb = (cx: number, cy: number, r: number, fill: string): string =>
+    `<circle cx="${cx}" cy="${cy + 4}" r="${r}" fill="#0a0414" opacity=".35" filter="url(#gShadow)"/>
+<circle cx="${cx}" cy="${cy}" r="${r}" fill="${fill}"/>
+<circle cx="${cx}" cy="${cy}" r="${r - 0.6}" fill="none" stroke="url(#gRim)" stroke-width="1.2"/>
+<ellipse cx="${cx}" cy="${cy - r * 0.48}" rx="${r * 0.62}" ry="${r * 0.3}" fill="url(#gSpec)"/>`
   const taskbar = s.taskbar
     ? `<g class="pin-b"><g transform="translate(0,${H})">
 <defs>
-<linearGradient id="tbar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a1460"/><stop offset=".1" stop-color="#25103f"/><stop offset=".9" stop-color="#170a2a"/><stop offset="1" stop-color="#0f061c"/></linearGradient>
-<linearGradient id="tstart" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff8cc8"/><stop offset=".15" stop-color="#ff4fa3"/><stop offset=".85" stop-color="#e03a7a"/><stop offset="1" stop-color="#b0236e"/></linearGradient>
-<linearGradient id="ttray" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2c1a5a"/><stop offset="1" stop-color="#1a0f3a"/></linearGradient>
-<filter id="tglow" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+<linearGradient id="gFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".26"/><stop offset=".5" stop-color="#ffffff" stop-opacity=".1"/><stop offset="1" stop-color="#ffffff" stop-opacity=".16"/></linearGradient>
+<linearGradient id="gRim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".85"/><stop offset=".45" stop-color="#ffffff" stop-opacity=".18"/><stop offset="1" stop-color="#ffd0ec" stop-opacity=".55"/></linearGradient>
+<linearGradient id="gSpec" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".6"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<radialGradient id="gStart" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#ffc0e0" stop-opacity=".95"/><stop offset=".45" stop-color="#ff4fa3" stop-opacity=".85"/><stop offset="1" stop-color="#ff8a4a" stop-opacity=".8"/></radialGradient>
+<radialGradient id="gBtn" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff" stop-opacity=".3"/><stop offset="1" stop-color="#ffffff" stop-opacity=".08"/></radialGradient>
+<filter id="gShadow" x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="gDot" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="1.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
 </defs>
-<rect x="-1000" y="-34" width="${W + 2000}" height="34" fill="url(#tbar)" fill-opacity=".92"/>
-<rect x="-1000" y="-34" width="${W + 2000}" height="1.5" fill="#ff5fae" filter="url(#tglow)"/>
-<g class="pin-l"><g transform="translate(0,-34) scale(1.15)">
-<path d="M0 0H82Q96 0 96 14.8Q96 29.6 82 29.6H0z" fill="url(#tstart)" filter="url(#tglow)"/>
-<path d="M0 1H81Q93 1 94 9" stroke="#ffd0e8" stroke-opacity=".8" fill="none"/>
-<g transform="translate(7,5) scale(.6)">${ICONS.spark}</g>
-<text x="30" y="20.5" font-family="Trebuchet MS, Tahoma, sans-serif" font-style="italic" font-weight="bold" font-size="16" fill="#fff" stroke="#6a0f3a" stroke-opacity=".6" stroke-width="1.6" paint-order="stroke">start</text>
-<rect x="101" y="5" width="1" height="19.6" fill="#ff5fae" opacity=".7"/><rect x="103" y="5" width="1" height="19.6" fill="#5ff0ff" opacity=".5"/>
-<g transform="translate(108,6) scale(.56)">${ICONS.globe}</g><g transform="translate(128,6) scale(.56)">${ICONS.folder}</g><g transform="translate(148,6) scale(.56)">${ICONS.terminal}</g>
-<g transform="translate(174,3)"><rect width="170" height="23.6" fill="#120822" stroke="#5ff0ff" stroke-opacity=".8" filter="url(#tglow)"/><path d="M.5 23V.5H169" stroke="#05020c" fill="none"/><g transform="translate(5,4) scale(.5)">${ICONS.terminal}</g><text x="26" y="16" font-family="Tahoma, sans-serif" font-weight="bold" font-size="11" fill="#fbe6ff">Claude Code</text></g>
+<g class="pin-l"><g transform="translate(14,-62) scale(1.15)">
+${glassOrb(22, 22, 21, 'url(#gStart)')}
+<g transform="translate(11,11) scale(.7)">${ICONS.spark}</g>
+${glassCapsule(52, 4, 108, 36, '#5ff0ff')}
+${glassOrb(73, 22, 13.5, 'url(#gBtn)')}<g transform="translate(64,13) scale(.56)">${ICONS.globe}</g>
+${glassOrb(106, 22, 13.5, 'url(#gBtn)')}<g transform="translate(97,13) scale(.56)">${ICONS.folder}</g>
+${glassOrb(139, 22, 13.5, 'url(#gBtn)')}<g transform="translate(130,13) scale(.56)">${ICONS.terminal}</g>
+${glassCapsule(170, 4, 150, 36, '#ff4fa3')}
+<g transform="translate(182,13) scale(.56)">${ICONS.terminal}</g>
+<text x="205" y="26.5" font-family="Segoe UI, sans-serif" font-weight="600" font-size="12" fill="#fff">Claude Code</text>
+<circle cx="245" cy="47" r="2.2" fill="#ffd27a" filter="url(#gDot)"/>
 </g></g>
-<g class="pin-r"><g transform="translate(${W - 112},-34) scale(1.15)">
-<rect width="100" height="29.6" fill="url(#ttray)"/><rect width="1.5" height="29.6" fill="#5ff0ff" filter="url(#tglow)"/>
-<rect x="5" y="4" width="90" height="21.6" fill="none" stroke="#ff5fae" stroke-opacity=".6"/>
-<path d="M11 11h3l4-4v14l-4-4h-3z" fill="none" stroke="#ffb347" stroke-width="1.2" filter="url(#tglow)"/><g transform="translate(22,7) scale(.44)">${ICONS.network}</g>
-<text x="44" y="19" font-family="Tahoma, sans-serif" font-size="11" fill="#ffd27a">Ready<tspan class="blink">_</tspan></text></g></g>
+<g class="pin-r"><g transform="translate(${W - 150},-62) scale(1.15)">
+${glassCapsule(0, 4, 116, 36, '#ffb347')}
+<path d="M16 18h3l4-4v16l-4-4h-3z" fill="none" stroke="#ffd27a" stroke-width="1.3" stroke-linejoin="round"/>
+<g transform="translate(29,13) scale(.5)">${ICONS.network}</g>
+<text x="52" y="26.5" font-family="Segoe UI, sans-serif" font-size="12" fill="#ffe6b0">Ready<tspan class="blink">_</tspan></text>
+</g></g>
 </g></g>`
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
@@ -308,7 +328,7 @@ export const previewSvg = (s: DeskSettings): string => {
     ? `<g transform="translate(36,20) scale(.4)">${ICONS.computer}</g><g transform="translate(36,38) scale(.4)">${ICONS.folder}</g><g transform="translate(36,56) scale(.4)">${ICONS.bin}</g>`
     : ''
   const bar = s.taskbar
-    ? '<rect x="32" y="108" width="136" height="8" fill="#140a24"/><rect x="32" y="108" width="136" height="1" fill="#ff4fa3"/><rect x="34" y="109.5" width="14" height="5" rx="2.5" fill="#ff4fa3"/>'
+    ? '<circle cx="38" cy="111" r="4" fill="#ff4fa3" stroke="#fff" stroke-opacity=".7" stroke-width=".6"/><rect x="45" y="107.5" width="22" height="7" rx="3.5" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-opacity=".6" stroke-width=".5"/><rect x="69" y="107.5" width="30" height="7" rx="3.5" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-opacity=".6" stroke-width=".5"/><rect x="146" y="107.5" width="20" height="7" rx="3.5" fill="#fff" fill-opacity=".22" stroke="#fff" stroke-opacity=".6" stroke-width=".5"/>'
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 156" width="200" height="156">
 <rect x="20" y="6" width="160" height="124" rx="10" fill="#1a0c2e" stroke="#ff4fa3"/>
