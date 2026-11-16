@@ -28,6 +28,7 @@ const STYLE_DEFAULTS: Record<DeskStyle, { wallpaper: DeskWallpaper; zoom: DeskZo
   '98': { wallpaper: 'teal', zoom: '100' },
   xp: { wallpaper: 'meadow', zoom: '65' },
   neon: { wallpaper: 'coast', zoom: '100' },
+  cyber: { wallpaper: 'city', zoom: '100' },
 }
 
 type Ui = ReturnType<EngineInterface['ui']['resolve']>
@@ -61,7 +62,7 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T):
 
 const sanitize = (raw: unknown): DeskSettings => {
   const v = (raw ?? {}) as Partial<DeskSettings>
-  const style = pick<DeskStyle>(v.style, ['98', 'xp', 'neon'], DEFAULTS.style)
+  const style = pick<DeskStyle>(v.style, ['98', 'xp', 'neon', 'cyber'], DEFAULTS.style)
   const look = STYLES[style]
   return {
     style,
@@ -113,7 +114,7 @@ export const register: Register = on => {
     await applyLook($, stored)
 
     await $.command.register({ name: 'display', description: `${NAME}: open Display Properties (style, wallpaper, color scheme, effects)` })
-    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Claude Neon)` })
+    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Claude Neon, Claude Cyber)` })
     await $.command.register({ name: 'sysmon', description: `${NAME}: open the System Monitor window` })
     await $.command.register({ name: 'startband', description: `${NAME}: show or hide the Start band above the prompt` })
     await $.command.register({ name: 'startmenu', description: `${NAME}: toggle the Start menu above the prompt` })
@@ -134,7 +135,7 @@ export const register: Register = on => {
 
   on('command.run', { command: 'style' }, async $ => {
     const s = await read($, settings)
-    const order: DeskStyle[] = ['98', 'xp', 'neon']
+    const order: DeskStyle[] = ['98', 'xp', 'neon', 'cyber']
     const nextStyle = order[(order.indexOf(s.style) + 1) % order.length] ?? 'xp'
     await commit($, withStyle(s, nextStyle))
     return { text: `Style: ${STYLES[nextStyle].label}. Run /style again for the next one.` }
