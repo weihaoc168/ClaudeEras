@@ -62,17 +62,26 @@ export const blockingProblem = (scheme: DeskScheme): string | undefined =>
 
 export const allProblems = (): string[] => SCHEME_KEYS.flatMap(k => THEMES[k].problems.map(p => `${k}: ${p}`))
 
+// "Your own image" is a picture the person keeps in the mod's custom/ folder,
+// which git ignores so it stays on their computer. It is a still ground the app
+// draws itself: no glass, desktop icons or taskbar over it.
+export const CUSTOM_IMAGE = 'custom/wallpaper.jpg'
+
 export const lookFor = (s: DeskSettings): ThemeSetArgs => ({
   colors: THEMES[s.scheme].theme,
   // The glass takes the app's own panel color: frosted enough that text reads
   // over the neon, thin enough that the city still glows through.
-  backdrop: { scene: 'claudecyber', glass: { blur: 8, opacity: 0.5 } },
+  backdrop:
+    s.wallpaper === 'custom'
+      ? { image: { source: CUSTOM_IMAGE } }
+      : { scene: 'claudecyber', glass: { blur: 8, opacity: 0.5 } },
 })
 
 export const WALLPAPERS: { value: DeskWallpaper; label: string; color: string }[] = [
   { value: 'city', label: 'Rain City', color: '#0a0b16' },
   { value: 'void', label: 'Void', color: '#05070a' },
   { value: 'black', label: 'Black', color: '#000000' },
+  { value: 'custom', label: 'Your own image (custom/wallpaper.jpg)', color: '#05070a' },
 ]
 
 export const wallColor = (w: DeskWallpaper): string => WALLPAPERS.find(x => x.value === w)?.color ?? '#05070a'
@@ -328,7 +337,9 @@ export const previewSvg = (s: DeskSettings): string => {
 ${
     s.wallpaper === 'city'
       ? `<svg x="32" y="16" width="136" height="100" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">${cityArt('p', false)}</svg>`
-      : `<rect x="32" y="16" width="136" height="100" fill="${wallColor(s.wallpaper)}"/>`
+      : s.wallpaper === 'custom'
+        ? `<rect x="32" y="16" width="136" height="100" fill="#05070a"/><text x="100" y="62" text-anchor="middle" font-family="Consolas, monospace" font-size="9" fill="${CYAN}">YOUR OWN IMAGE</text><text x="100" y="76" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#7fa3b8">custom/wallpaper.jpg</text>`
+        : `<rect x="32" y="16" width="136" height="100" fill="${wallColor(s.wallpaper)}"/>`
   }
 ${icons}
 <path d="M74 34H140V76L134 80H70V38z" fill="#0b1018" stroke="${CYAN}"/><rect x="74" y="35" width="60" height="7" fill="${accentOf(s.scheme)}"/><rect x="133" y="35.5" width="6" height="5" fill="${RED}"/>

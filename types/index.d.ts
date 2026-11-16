@@ -1,6 +1,6 @@
 export type DeskStyle = '98' | 'xp' | 'neon' | 'cyber'
 export type DeskScheme = 'standard' | 'rose' | 'slate' | 'eggplant'
-export type DeskWallpaper = 'meadow' | 'teal' | 'navy' | 'black' | 'olive' | 'clouds' | 'coast' | 'dusk' | 'city' | 'void'
+export type DeskWallpaper = 'meadow' | 'teal' | 'navy' | 'black' | 'olive' | 'clouds' | 'coast' | 'dusk' | 'city' | 'void' | 'custom'
 export type DeskZoom = '100' | '80' | '65' | '50'
 export type DeskSettings = {
   style: DeskStyle
