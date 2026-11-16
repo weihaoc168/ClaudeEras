@@ -21,7 +21,7 @@ export const chromeOf = (scheme: DeskScheme): string => SCHEMES[scheme].s1
 const build = (key: DeskScheme) => {
   const s = SCHEMES[key]
   return makeColors({
-    label: `ClaudeEras Neon Coast - ${s.label}`,
+    label: `ClaudeEras Claude Neon - ${s.label}`,
     roles: { accent: s.accent, danger: '#b00030', success: '#007a4a', warning: '#a86400', pro: '#7a2fd6' },
     light: {
       gray: {
@@ -67,7 +67,7 @@ export const lookFor = (s: DeskSettings): ThemeSetArgs => ({
   // Every wallpaper is a live scene drawn by the mod. The glass takes the app's
   // own panel color (dark in dark mode): frosted enough that text reads over the
   // bright sun, thin enough that the sunset still glows through.
-  backdrop: { scene: 'neoncoast', glass: { blur: 8, opacity: 0.45 } },
+  backdrop: { scene: 'claudeneon', glass: { blur: 8, opacity: 0.45 } },
 })
 
 // ---------- the desktop scene: neon icons, a glass taskbar, the coast ----------

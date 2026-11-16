@@ -113,7 +113,7 @@ export const register: Register = on => {
     await applyLook($, stored)
 
     await $.command.register({ name: 'display', description: `${NAME}: open Display Properties (style, wallpaper, color scheme, effects)` })
-    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Neon Coast)` })
+    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Claude Neon)` })
     await $.command.register({ name: 'sysmon', description: `${NAME}: open the System Monitor window` })
     await $.command.register({ name: 'startband', description: `${NAME}: show or hide the Start band above the prompt` })
     await $.command.register({ name: 'startmenu', description: `${NAME}: toggle the Start menu above the prompt` })

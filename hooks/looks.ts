@@ -98,7 +98,7 @@ export const STYLES: Record<DeskStyle, Look> = {
   },
   neon: {
     ...lneon,
-    label: 'Neon Coast',
+    label: 'Claude Neon',
     // Square 1998 window frames, rounded early-2000s buttons, start button and
     // close box, all lit in neon colors.
     chrome: {
