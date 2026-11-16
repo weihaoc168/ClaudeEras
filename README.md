@@ -32,7 +32,7 @@ Use it instead of the single-style mods, not alongside them: uninstall `claude98
 
 Switching a style resets the wallpaper to that style's own default; your scheme and effects carry over.
 
-**Your own image (Claude Cyber).** Put a JPEG of your own at `custom/wallpaper.jpg` in the mod's folder (at most 1 MiB and 4096 px on a side), then pick **Your own image** under Claude Cyber's wallpapers. The `custom/` folder is git-ignored, so the picture stays on your computer. The app draws it as a still background, without the drawn desktop icons and taskbar.
+**Your own image (Claude Cyber).** Put a small picture of your own at `custom/wallpaper.png` (or `custom/wallpaper.jpg`) in the mod's folder, then pick **Your own image** under Claude Cyber's wallpapers. It is built into the drawn scene, so the desktop icons, taskbar and glass sit over it, and pixel art keeps crisp pixels. A scene has a size cap, so keep the file under about 80 KB: for pixel art, save it at its true pixel size (around 500-600 px wide) as a PNG with a limited palette. The `custom/` folder is git-ignored, so the picture stays on your computer. Use only pictures you have the right to use.
 
 ## ⌨️ Commands
 

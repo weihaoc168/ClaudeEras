@@ -63,25 +63,29 @@ export const blockingProblem = (scheme: DeskScheme): string | undefined =>
 export const allProblems = (): string[] => SCHEME_KEYS.flatMap(k => THEMES[k].problems.map(p => `${k}: ${p}`))
 
 // "Your own image" is a picture the person keeps in the mod's custom/ folder,
-// which git ignores so it stays on their computer. It is a still ground the app
-// draws itself: no glass, desktop icons or taskbar over it.
-export const CUSTOM_IMAGE = 'custom/wallpaper.jpg'
+// which git ignores so it stays on their computer. The register module reads
+// it and hands it here; the scene embeds it, so the desktop icons, taskbar and
+// glass sit over it like any other wallpaper. The whole picture always shows,
+// fitted inside the window with dark space around it. A PNG is taken for pixel
+// art and drawn with crisp pixels; a JPEG is drawn smoothly. A scene has a size cap, so the picture must stay small.
+export const CUSTOM_MAX_BASE64 = 112000
+let customImage: { mime: string; base64: string } | undefined
+export const setCustomImage = (image: { mime: string; base64: string } | undefined): void => {
+  customImage = image
+}
 
 export const lookFor = (s: DeskSettings): ThemeSetArgs => ({
   colors: THEMES[s.scheme].theme,
   // The glass takes the app's own panel color: frosted enough that text reads
   // over the neon, thin enough that the city still glows through.
-  backdrop:
-    s.wallpaper === 'custom'
-      ? { image: { source: CUSTOM_IMAGE } }
-      : { scene: 'claudecyber', glass: { blur: 8, opacity: 0.5 } },
+  backdrop: { scene: 'claudecyber', glass: { blur: 8, opacity: 0.5 } },
 })
 
 export const WALLPAPERS: { value: DeskWallpaper; label: string; color: string }[] = [
   { value: 'city', label: 'Rain City', color: '#0a0b16' },
   { value: 'void', label: 'Void', color: '#05070a' },
   { value: 'black', label: 'Black', color: '#000000' },
-  { value: 'custom', label: 'Your own image (custom/wallpaper.jpg)', color: '#05070a' },
+  { value: 'custom', label: 'Your own image (custom/wallpaper.png or .jpg)', color: '#05070a' },
 ]
 
 export const wallColor = (w: DeskWallpaper): string => WALLPAPERS.find(x => x.value === w)?.color ?? '#05070a'
@@ -100,10 +104,10 @@ const CYAN = '#00e5ff'
 const MAGENTA = '#ff2bd6'
 const RED = '#ff3b4f'
 
-// 32x32 HUD icons: a cut-corner frame and a glyph in thin acid, cyan and
+// 32x32 HUD icons: a dark cut-corner tile with acid corner marks and a glyph in thin acid, cyan and
 // magenta lines, with a faint magenta ghost offset like a glitch. All original.
 const HG = `<defs><filter id="hGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation=".8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`
-const frame = `<path d="M6 2H30V24L24 30H2V6z" fill="#0b1018" fill-opacity=".85" stroke="${CYAN}" stroke-width="1.2"/><path d="M2 6L6 2" stroke="${ACID}" stroke-width="1.6"/><path d="M24 30L30 24" stroke="${ACID}" stroke-width="1.6"/>`
+const frame = `<path d="M6 2H30V24L24 30H2V6z" fill="#0b1018" fill-opacity=".85"/><path d="M2 6L6 2" stroke="${ACID}" stroke-width="1.6"/><path d="M24 30L30 24" stroke="${ACID}" stroke-width="1.6"/>`
 const hud = (glyph: string): string =>
   `${HG}${frame}<g fill="none" stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><g transform="translate(1,0)" stroke="${MAGENTA}" opacity=".45">${glyph}</g><g stroke="${ACID}" filter="url(#hGlow)">${glyph}</g></g>`
 
@@ -284,7 +288,11 @@ export const sceneSvg = (s: DeskSettings): string => {
   const ground =
     s.wallpaper === 'city'
       ? `<g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)">${cityArt('m', true, 4000)}</g>`
-      : `<rect width="${W}" height="${H}" fill="${wallColor(s.wallpaper)}"/><rect width="${W}" height="${H}" fill="url(#vgrid)"/>`
+      : s.wallpaper === 'custom'
+        ? customImage !== undefined
+          ? `<rect width="${W}" height="${H}" fill="#05070a"/><g transform="translate(800 500) scale(${zoomOf(s)}) translate(-800 -500)"><image href="data:${customImage.mime};base64,${customImage.base64}" x="0" y="0" width="${W}" height="${H}" preserveAspectRatio="xMidYMid meet" ${customImage.mime === 'image/png' ? 'style="image-rendering:pixelated"' : ''}/></g>`
+          : `<rect width="${W}" height="${H}" fill="#05070a"/><rect width="${W}" height="${H}" fill="url(#vgrid)"/><text x="800" y="480" text-anchor="middle" font-family="Consolas, monospace" font-size="26" fill="${CYAN}">NO PICTURE FOUND</text><text x="800" y="520" text-anchor="middle" font-family="Consolas, monospace" font-size="16" fill="#7fa3b8">Put a small PNG or JPEG at custom/wallpaper.png or custom/wallpaper.jpg in the mod's folder</text>`
+        : `<rect width="${W}" height="${H}" fill="${wallColor(s.wallpaper)}"/><rect width="${W}" height="${H}" fill="url(#vgrid)"/>`
   const icons = s.icons
     ? `<g class="pin-t"><g class="pin-l"><g transform="translate(6,8) scale(1.15)">${[
         iconAt('computer', 0, 0, 'My Computer'),

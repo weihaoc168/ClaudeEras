@@ -2,6 +2,7 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { DeskCall, DeskMenu, DeskMonitorView, DeskScheme, DeskSettings, DeskStyle, DeskTab, DeskWallpaper, DeskZoom } from '../types'
+import { CUSTOM_MAX_BASE64, setCustomImage } from './lookcyber'
 import { FACE_COLOR, STYLES, STYLE_OPTIONS } from './looks'
 import type { Chrome } from './looks'
 
@@ -76,7 +77,30 @@ const sanitize = (raw: unknown): DeskSettings => {
   }
 }
 
+// Reads the person's own picture from the mod's custom/ folder for the scene,
+// PNG first, then JPEG. Too large for a scene, or missing: no picture, and the
+// scene says so.
+const loadCustomImage = async ($: EngineInterface): Promise<void> => {
+  for (const [name, mime] of [['wallpaper.png', 'image/png'], ['wallpaper.jpg', 'image/jpeg']] as const) {
+    const read = await $.fs.read(`${$.plugin.root}/custom/${name}`, { as: 'bytes' }).catch(() => undefined)
+    if (read === undefined) {
+      continue
+    }
+    if (read.base64.length > CUSTOM_MAX_BASE64) {
+      $.ui.toast(`${NAME}: custom/${name} is too large for the scene. Keep it under about 80 KB (a small PNG works best for pixel art).`)
+      setCustomImage(undefined)
+      return
+    }
+    setCustomImage({ mime, base64: read.base64 })
+    return
+  }
+  setCustomImage(undefined)
+}
+
 const applyLook = async ($: EngineInterface, s: DeskSettings): Promise<void> => {
+  if (s.style === 'cyber' && s.wallpaper === 'custom') {
+    await loadCustomImage($)
+  }
   const look = STYLES[s.style]
   const unpainted = look.blockingProblem(s.scheme)
   if (unpainted !== undefined) {
