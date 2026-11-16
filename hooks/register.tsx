@@ -2,7 +2,6 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { DeskCall, DeskMenu, DeskMonitorView, DeskScheme, DeskSettings, DeskStyle, DeskTab, DeskWallpaper, DeskZoom } from '../types'
-import { CUSTOM_MAX_BASE64, setCustomImage } from './lookcyber'
 import { FACE_COLOR, STYLES, STYLE_OPTIONS } from './looks'
 import type { Chrome } from './looks'
 
@@ -29,7 +28,6 @@ const STYLE_DEFAULTS: Record<DeskStyle, { wallpaper: DeskWallpaper; zoom: DeskZo
   '98': { wallpaper: 'teal', zoom: '100' },
   xp: { wallpaper: 'meadow', zoom: '65' },
   neon: { wallpaper: 'coast', zoom: '100' },
-  cyber: { wallpaper: 'city', zoom: '100' },
 }
 
 type Ui = ReturnType<EngineInterface['ui']['resolve']>
@@ -63,7 +61,7 @@ const pick = <T extends string>(v: unknown, allowed: readonly T[], fallback: T):
 
 const sanitize = (raw: unknown): DeskSettings => {
   const v = (raw ?? {}) as Partial<DeskSettings>
-  const style = pick<DeskStyle>(v.style, ['98', 'xp', 'neon', 'cyber'], DEFAULTS.style)
+  const style = pick<DeskStyle>(v.style, ['98', 'xp', 'neon'], DEFAULTS.style)
   const look = STYLES[style]
   return {
     style,
@@ -77,40 +75,7 @@ const sanitize = (raw: unknown): DeskSettings => {
   }
 }
 
-// Reads the person's own picture from the mod's custom/ folder for the scene,
-// PNG first, then JPEG. Too large for a scene, or missing: no picture, and the
-// scene says so.
-let customStatus = 'not loaded yet (pick Your own image under Claude Blade)'
-
-const loadCustomImage = async ($: EngineInterface): Promise<void> => {
-  const tried: string[] = []
-  for (const [name, mime] of [['wallpaper.png', 'image/png'], ['wallpaper.jpg', 'image/jpeg']] as const) {
-    const path = `${$.plugin.root}/custom/${name}`
-    const read = await $.fs.read(path, { as: 'bytes' }).catch((err: unknown) => {
-      tried.push(`${path}: ${err instanceof Error ? err.message : String(err)}`)
-      return undefined
-    })
-    if (read === undefined) {
-      continue
-    }
-    if (read.base64.length > CUSTOM_MAX_BASE64) {
-      $.ui.toast(`${NAME}: custom/${name} is too large for the scene. Keep it under about 80 KB (a small PNG works best for pixel art).`)
-      customStatus = `custom/${name} found but too large (${read.base64.length} base64 characters, limit ${CUSTOM_MAX_BASE64})`
-      setCustomImage(undefined)
-      return
-    }
-    setCustomImage({ mime, base64: read.base64 })
-    customStatus = `custom/${name} loaded into the scene (${read.base64.length} base64 characters)`
-    return
-  }
-  customStatus = `no picture could be read: ${tried.join(' | ')}`
-  setCustomImage(undefined)
-}
-
 const applyLook = async ($: EngineInterface, s: DeskSettings): Promise<void> => {
-  if (s.style === 'cyber' && s.wallpaper === 'custom') {
-    await loadCustomImage($)
-  }
   const look = STYLES[s.style]
   const unpainted = look.blockingProblem(s.scheme)
   if (unpainted !== undefined) {
@@ -148,7 +113,7 @@ export const register: Register = on => {
     await applyLook($, stored)
 
     await $.command.register({ name: 'display', description: `${NAME}: open Display Properties (style, wallpaper, color scheme, effects)` })
-    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Claude Neon, Claude Blade)` })
+    await $.command.register({ name: 'style', description: `${NAME}: switch to the next style (Windows 98, XP, Claude Neon)` })
     await $.command.register({ name: 'sysmon', description: `${NAME}: open the System Monitor window` })
     await $.command.register({ name: 'startband', description: `${NAME}: show or hide the Start band above the prompt` })
     await $.command.register({ name: 'startmenu', description: `${NAME}: toggle the Start menu above the prompt` })
@@ -169,7 +134,7 @@ export const register: Register = on => {
 
   on('command.run', { command: 'style' }, async $ => {
     const s = await read($, settings)
-    const order: DeskStyle[] = ['98', 'xp', 'neon', 'cyber']
+    const order: DeskStyle[] = ['98', 'xp', 'neon']
     const nextStyle = order[(order.indexOf(s.style) + 1) % order.length] ?? 'xp'
     await commit($, withStyle(s, nextStyle))
     return { text: `Style: ${STYLES[nextStyle].label}. Run /style again for the next one.` }
@@ -202,9 +167,6 @@ export const register: Register = on => {
         `Screens attached: ${surfaces.length === 0 ? 'none' : surfaces.join(', ')}`,
         `Theme: ${set.isDrawn ? 'accepted by an attached app' : `not drawn (${set.reason})`}`,
         `Backdrop last drawn on: ${lastBackdrop ?? 'nothing yet this load'}`,
-        `Wallpaper: ${s.wallpaper}`,
-        `Your own image: ${customStatus}`,
-        `Mod folder: ${$.plugin.root}`,
         `Color contrast notes: ${look.allProblems().length}`,
       ].join('\n'),
     }

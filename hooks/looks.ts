@@ -2,7 +2,6 @@ import type { ThemeSetArgs } from 'claude-code'
 
 import type { DeskScheme, DeskSettings, DeskStyle, DeskWallpaper } from '../types'
 import * as l98 from './look98'
-import * as lcyber from './lookcyber'
 import * as lneon from './lookneon'
 import * as lxp from './lookxp'
 
@@ -47,8 +46,7 @@ export type Look = {
 
 const FACE = 'inverseText'
 
-export const STYLES = {} as Record<DeskStyle, Look>
-Object.assign(STYLES, {
+export const STYLES: Record<DeskStyle, Look> = {
   '98': {
     ...l98,
     ZOOMS: [],
@@ -123,33 +121,6 @@ Object.assign(STYLES, {
       error: '#ff6b8b',
       done: '#c9b6e4',
     },
-  },
-})
-
-STYLES.cyber = {
-  ...lcyber,
-  label: 'Claude Blade',
-  // Hard-edged HUD chrome: square frames in cyan, acid-yellow button edges,
-  // a magenta selection and a red close box on near-black panels.
-  chrome: {
-    border: 'single',
-    buttonBorder: 'single',
-    body: '#0b0f14',
-    shadow: '#2a3a4a',
-    frame: '#00e5ff',
-    buttonEdge: '#f5e642',
-    selected: '#ff2bd6',
-    close: '#ff3b4f',
-    closeEdge: '#f5e642',
-    startFace: FACE,
-    startEdge: '#f5e642',
-    startLabel: 'START',
-    hover: '#00b8cc',
-    ink: '#d8f6ff',
-    panel: '#111821',
-    number: '#f5e642',
-    error: '#ff3b4f',
-    done: '#7fa3b8',
   },
 }
 

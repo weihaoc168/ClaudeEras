@@ -1,1 +1,1 @@
-{ "name": "claudeeras", "version": "0.1.0", "description": "Four desktop styles in one Claude Code mod: switch between Windows 98, XP, Claude Neon and Claude Blade, each with its own wallpaper, icons, taskbar, windows, System Monitor and Display Properties", "types": "./types/index.d.ts" }
+{ "name": "claudeeras", "version": "0.1.0", "description": "Three desktop eras in one Claude Code mod: switch between a Windows 98, an XP and a Claude Neon style, each with its own wallpaper, icons, taskbar, windows, System Monitor and Display Properties", "types": "./types/index.d.ts" }
