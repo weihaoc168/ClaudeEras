@@ -10,7 +10,7 @@
 
 | Style | Desktop | Windows |
 | --- | --- | --- |
-| **Windows 98** | Classic plain teal, pixel icons, grey taskbar and Start button | Square silver windows, black frames |
+| **Windows 98** | Classic plain teal (or an original Clouds sky, or a DOS prompt), pixel icons, grey taskbar with a tray clock | Square silver windows, black frames. Its System Monitor is the 1998 **Claude** chat window: File / Edit / View / Tools / Help, a You / tool-call log, a context (C:) pie with **Context Cleanup** (compact) and a low-space warning, and a `Connected at 49,333 bps` status bar |
 | **XP** | A rolling green meadow, glossy icons, blue taskbar with a green start button | Cream windows, rounded blue frames, red close box |
 | **Claude Neon** | A softly realistic pink, purple and orange sunset over the sea with palms, neon retro icons, a floating liquid-glass taskbar | Night-purple windows, hot-pink frames |
 

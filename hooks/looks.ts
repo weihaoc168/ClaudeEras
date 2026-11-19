@@ -39,7 +39,7 @@ export type Look = {
   allProblems: () => string[]
   blockingProblem: (scheme: DeskScheme) => string | undefined
   lookFor: (s: DeskSettings) => ThemeSetArgs
-  sceneSvg: (s: DeskSettings) => string
+  sceneSvg: (s: DeskSettings, clock?: string) => string
   previewSvg: (s: DeskSettings) => string
   iconSvg: (name: string, size?: number) => string
 }

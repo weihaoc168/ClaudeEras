@@ -77,6 +77,8 @@ export const lookFor = (s: DeskSettings): ThemeSetArgs => ({
 
 export const WALLPAPERS: { value: DeskWallpaper; label: string; color: string }[] = [
   { value: 'teal', label: 'Teal (the classic)', color: '#008080' },
+  { value: 'clouds', label: 'Clouds', color: '#3a78c8' },
+  { value: 'dos', label: 'DOS prompt', color: '#000000' },
   { value: 'navy', label: 'Midnight', color: '#000058' },
   { value: 'olive', label: 'Olive', color: '#5e5e22' },
   { value: 'black', label: 'Black', color: '#000000' },
@@ -106,13 +108,19 @@ export const ICONS: Record<string, string> = {
   display: `<rect x="3" y="3" width="26" height="19" fill="#c0c0c0" stroke="#000"/><rect x="5" y="5" width="22" height="15" fill="#008080"/><rect x="8" y="8" width="10" height="7" fill="#c0c0c0"/><rect x="8" y="8" width="10" height="2" fill="#000080"/><rect x="12" y="22" width="8" height="4" fill="#808080"/><rect x="7" y="26" width="18" height="3" fill="#c0c0c0" stroke="#000"/><path d="M24 2l2 4 4 1-4 1-2 4-2-4-4-1 4-1z" fill="#ffd84a"/>`,
   monitor: `<rect x="3" y="3" width="26" height="24" fill="#000" stroke="#808080"/><path d="M5 9h22M5 15h22M5 21h22" stroke="#063"/><path d="M5 22l5-6 4 3 5-9 4 5 4-4" stroke="#0f0" fill="none"/>`,
   spark: `<path d="M16 2l2.5 9.5L28 9l-7.5 6.5L28 22l-9.5-2.5L16 30l-2.5-10.5L4 22l7.5-6.5L4 9l9.5 2.5z" fill="#e07a4a" stroke="#7a2e10" stroke-width=".8"/>`,
+  mail: `<rect x="3" y="8" width="26" height="18" fill="#f4f4f4" stroke="#000"/><path d="M3 8l13 10 13-10M3 26l10-9M29 26l-10-9" fill="none" stroke="#000"/>`,
 }
 
+// A desktop icon with its label, which wraps onto two lines when long, as 1998
+// desktops did; a selected one gets the dotted navy highlight.
 const iconAt = (name: string, x: number, y: number, label: string, selected = false): string => {
-  const w = label.length * 6.2 + 6
+  const lines = label.length > 13 && label.includes(' ') ? [label.slice(0, label.lastIndexOf(' ')), label.slice(label.lastIndexOf(' ') + 1)] : [label]
+  const w = Math.max(...lines.map(l => l.length)) * 6.2 + 6
+  const h = 14 * lines.length
+  const text = lines.map((l, i) => `<tspan x="38" dy="${i === 0 ? 0 : 12}">${l}</tspan>`).join('')
   return `<g transform="translate(${x},${y})"><g transform="translate(22,0)">${ICONS[name]}</g>
-<rect x="${38 - w / 2}" y="36" width="${w}" height="14" fill="${selected ? '#000080' : 'none'}" ${selected ? 'stroke="#ffff80" stroke-dasharray="1 1"' : ''}/>
-<text x="38" y="47" text-anchor="middle" fill="#fff" stroke="#000" stroke-opacity=".55" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round" font-family="sans-serif" font-size="11">${label}</text></g>`
+<rect x="${38 - w / 2}" y="36" width="${w}" height="${h}" fill="${selected ? '#000080' : 'none'}" ${selected ? 'stroke="#ffff80" stroke-dasharray="1 1"' : ''}/>
+<text x="38" y="47" text-anchor="middle" fill="#fff" stroke="#000" stroke-opacity=".55" stroke-width="2.4" paint-order="stroke" stroke-linejoin="round" font-family="sans-serif" font-size="11">${text}</text></g>`
 }
 
 // The scene is one 1600x1000 box that slices to fill any window, as the
@@ -142,16 +150,29 @@ const edgeRules = (): string => {
   return rules.reverse().join('')
 }
 
-export const sceneSvg = (s: DeskSettings): string => {
-  const ground = `<rect width="${W}" height="${H}" fill="${wallColor(s.wallpaper)}"/>`
+// An original soft cloud sky: a blue gradient with blurred white cumulus.
+const cloudsArt = (p: string): string => {
+  const puff = (x: number, y: number, k: number): string =>
+    `<g transform="translate(${x},${y}) scale(${k})"><ellipse rx="150" ry="40"/><ellipse cx="-60" cy="-22" rx="70" ry="42"/><ellipse cx="40" cy="-34" rx="90" ry="50"/><ellipse cx="110" cy="-10" rx="60" ry="34"/></g>`
+  return `<defs><linearGradient id="${p}sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f6fd0"/><stop offset=".6" stop-color="#6aa6ec"/><stop offset="1" stop-color="#b9daf6"/></linearGradient><filter id="${p}soft" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="14"/></filter></defs>
+<rect x="-4000" y="-4000" width="9600" height="9000" fill="url(#${p}sky)"/>
+<g fill="#fff" opacity=".9" filter="url(#${p}soft)">${puff(260, 200, 1.1)}${puff(820, 120, 1.5)}${puff(1380, 260, 1.2)}${puff(520, 520, 1.6)}${puff(1180, 600, 1.3)}${puff(140, 820, 1.2)}${puff(900, 900, 1.7)}${puff(1500, 860, 1.1)}</g>`
+}
+
+// A DOS boot prompt, as a 1998 PC shows it before the desktop appears.
+const dosArt = (): string =>
+  `<rect x="-4000" y="-4000" width="9600" height="9000" fill="#000"/><g font-family="Consolas, monospace" font-size="22" fill="#c0c0c0" transform="translate(300,20)"><text x="24" y="40">Starting Claude 98...</text><text x="24" y="100">C:\\&gt;claude</text><text x="24" y="130">Claude 98 loaded. Ready.</text><text x="24" y="190">C:\\&gt;<tspan class="blink">_</tspan></text></g>`
+
+export const sceneSvg = (s: DeskSettings, clock = ''): string => {
+  const ground =
+    s.wallpaper === 'clouds' ? cloudsArt('c') : s.wallpaper === 'dos' ? dosArt() : `<rect x="-4000" y="-4000" width="9600" height="9000" fill="${wallColor(s.wallpaper)}"/>`
   const icons = s.icons
     ? `<g class="pin-t"><g class="pin-l"><g transform="translate(6,8) scale(1.15)">${[
         iconAt('computer', 0, 0, 'My Computer'),
         iconAt('folder', 0, 70, 'My Documents'),
-        iconAt('globe', 0, 140, 'The Internet'),
-        iconAt('network', 0, 210, 'Network'),
-        iconAt('bin', 0, 280, 'Recycle Bin'),
-        iconAt('terminal', 0, 350, 'Claude Code', true),
+        iconAt('network', 0, 140, 'Network Neighborhood'),
+        iconAt('bin', 0, 222, 'Recycle Bin'),
+        iconAt('spark', 0, 292, 'Claude', true),
       ].join('\n')}</g></g></g>`
     : ''
   const taskbar = s.taskbar
@@ -160,12 +181,14 @@ export const sceneSvg = (s: DeskSettings): string => {
 <g class="pin-l"><g transform="translate(2,-31) scale(1.15)">
 <g>${bevel(0, 0, 60, 24)}<g transform="translate(4,4) scale(.5)">${ICONS.spark}</g><text x="23" y="16" font-family="sans-serif" font-weight="bold" font-size="12">Start</text></g>
 <rect x="66" y="1" width="1" height="22" fill="#808080"/><rect x="67" y="1" width="1" height="22" fill="#fff"/>
-<g transform="translate(74,3) scale(.56)">${ICONS.globe}</g><g transform="translate(94,3) scale(.56)">${ICONS.folder}</g><g transform="translate(114,3) scale(.56)">${ICONS.terminal}</g>
-<g transform="translate(140,0)">${bevel(0, 0, 170, 24, true, '#e8e8e8')}<g transform="translate(5,4) scale(.5)">${ICONS.terminal}</g><text x="26" y="16" font-family="sans-serif" font-weight="bold" font-size="11">Claude Code</text></g>
+<g transform="translate(74,3) scale(.56)">${ICONS.globe}</g><g transform="translate(94,3) scale(.56)">${ICONS.mail}</g><g transform="translate(114,3) scale(.56)">${ICONS.computer}</g>
+<rect x="134" y="1" width="1" height="22" fill="#808080"/><rect x="135" y="1" width="1" height="22" fill="#fff"/>
+<g transform="translate(140,0)">${bevel(0, 0, 120, 24, true, '#e8e8e8')}<g transform="translate(5,4) scale(.5)">${ICONS.spark}</g><text x="26" y="16" font-family="sans-serif" font-weight="bold" font-size="11">Claude</text></g>
+<g transform="translate(264,0)">${bevel(0, 0, 130, 24)}<g transform="translate(5,4) scale(.5)">${ICONS.monitor}</g><text x="26" y="16" font-family="sans-serif" font-size="11">System Monitor</text></g>
 </g></g>
 <g class="pin-r"><g transform="translate(${W - 104},-31) scale(1.15)">${bevel(0, 0, 88, 24, true)}
 <path d="M8 9h3l4-4v14l-4-4H8z" fill="#ffd84a" stroke="#000" stroke-width=".7"/><g transform="translate(20,5) scale(.44)">${ICONS.network}</g>
-<text x="40" y="16" font-family="sans-serif" font-size="11">Ready<tspan class="blink">_</tspan></text></g></g>
+<text x="40" y="16" font-family="sans-serif" font-size="11">${clock === '' ? 'Ready<tspan class="blink">_</tspan>' : clock}</text></g></g>
 </g></g>`
     : ''
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid slice">
@@ -188,7 +211,9 @@ export const previewSvg = (s: DeskSettings): string => {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 156" width="200" height="156">
 <rect x="20" y="6" width="160" height="124" rx="4" fill="#d8d0b8" stroke="#000"/>
 ${
-    `<rect x="32" y="16" width="136" height="100" fill="${fill}" stroke="#606060"/>`
+    s.wallpaper === 'clouds'
+      ? `<svg x="32" y="16" width="136" height="100" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">${cloudsArt('p')}</svg><rect x="32" y="16" width="136" height="100" fill="none" stroke="#606060"/>`
+      : `<rect x="32" y="16" width="136" height="100" fill="${fill}" stroke="#606060"/>`
   }
 ${icons}
 <rect x="70" y="34" width="70" height="46" fill="${chromeOf(s.scheme)}" stroke="#000"/><rect x="71" y="35" width="68" height="8" fill="${accentOf(s.scheme)}"/>

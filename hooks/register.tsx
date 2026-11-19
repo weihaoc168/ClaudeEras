@@ -15,13 +15,46 @@ const DEFAULTS: DeskSettings = { style: 'xp', scheme: 'standard', wallpaper: 'me
 const settings = atom({ plugin: 'claudeeras', key: 'settings' } as const, DEFAULTS, { shape: 'settings-1' })
 const draft = atom({ plugin: 'claudeeras', key: 'draft' } as const, null, { shape: 'draft-1' })
 const tab = atom({ plugin: 'claudeeras', key: 'tab' } as const, 'background' as DeskTab)
-const calls = atom({ plugin: 'claudeeras', key: 'calls' } as const, [], { shape: 'calls-1' })
+const calls = atom({ plugin: 'claudeeras', key: 'calls' } as const, [], { shape: 'calls-2' })
 const isStartOpen = atom({ plugin: 'claudeeras', key: 'isStartOpen' } as const, false)
 const monitorMenu = atom({ plugin: 'claudeeras', key: 'monitorMenu' } as const, null as DeskMenu | null)
 const monitorView = atom({ plugin: 'claudeeras', key: 'monitorView' } as const, { bars: true, log: true } as DeskMonitorView, { shape: 'view-1' })
 
 const WHITE = '#ffffff'
 const FACE = FACE_COLOR
+// Bumped once a minute so a taskbar clock redraws.
+const tick = atom({ plugin: 'claudeeras', key: 'tick' } as const, 0)
+const isWarningDismissed = atom({ plugin: 'claudeeras', key: 'isWarningDismissed' } as const, false)
+
+// The 1998 chat window's two voices and marks.
+const ORANGE = '#d2691e'
+const GREEN = '#008000'
+const MUTED = '#606060'
+
+// A 3D pie of the context window, drawn like a 1998 drive-properties dialog:
+// used space in blue, free space in magenta, with a darker rim beneath.
+const pieSvg = (fraction: number): string => {
+  const cx = 100
+  const cy = 44
+  const rx = 80
+  const ry = 32
+  const f = Math.min(1, Math.max(0, fraction))
+  const slice = (frac: number, yOff: number, used: string, free: string): string => {
+    if (frac >= 0.999) return `<ellipse cx="${cx}" cy="${cy + yOff}" rx="${rx}" ry="${ry}" fill="${used}"/>`
+    if (frac <= 0.001) return `<ellipse cx="${cx}" cy="${cy + yOff}" rx="${rx}" ry="${ry}" fill="${free}"/>`
+    const t = frac * Math.PI * 2
+    const ex = (cx + rx * Math.cos(t)).toFixed(1)
+    const ey = (cy + yOff + ry * Math.sin(t)).toFixed(1)
+    const large = frac > 0.5 ? 1 : 0
+    return `<ellipse cx="${cx}" cy="${cy + yOff}" rx="${rx}" ry="${ry}" fill="${free}"/><path d="M${cx} ${cy + yOff}L${cx + rx} ${cy + yOff}A${rx} ${ry} 0 ${large} 1 ${ex} ${ey}z" fill="${used}"/>`
+  }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 100" width="200" height="100">
+<rect x="${cx - rx}" y="${cy}" width="${rx * 2}" height="16" fill="#800080"/>${slice(f, 16, '#000060', '#800080')}
+${slice(f, 0, '#0000ff', '#ff00ff')}
+<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="none" stroke="#000" stroke-opacity=".5"/></svg>`
+}
+
+const fmtTokens = (n: number | undefined): string => (n === undefined ? '—' : `${Math.round(n / 1000).toLocaleString('en-US')}k tokens`)
 
 // Each style's default wallpaper and size, used when the style changes.
 const STYLE_DEFAULTS: Record<DeskStyle, { wallpaper: DeskWallpaper; zoom: DeskZoom }> = {
@@ -122,6 +155,9 @@ export const register: Register = on => {
     if (stored.startup) {
       void openMonitor($)
     }
+    $.clock.every(60_000, () => {
+      void update($, tick, n => n + 1)
+    })
     return next(e)
   })
 
@@ -174,8 +210,20 @@ export const register: Register = on => {
 
   // ---------------- tool calls feed the System Monitor ----------------
 
+  on('prompt.submit', async ($, e, next) => {
+    const text = e.text.trim()
+    if (text !== '' && !text.startsWith('/')) {
+      const you: DeskCall = { id: `you-${Date.now()}`, kind: 'you', tool: text.length > 90 ? `${text.slice(0, 87)}...` : text, arg: '', isDone: true, isError: false }
+      await update($, calls, list => [...list, you].slice(-100))
+    }
+    return next(e)
+  })
+
   on('tool.call', async ($, e, next) => {
-    const call: DeskCall = { id: e.tool_use_id, tool: e.tool, isDone: false, isError: false }
+    const input = e as unknown as Record<string, unknown>
+    const raw = ['command', 'file_path', 'pattern', 'url', 'query', 'description'].map(k => input[k]).find(v => typeof v === 'string') as string | undefined
+    const arg = raw === undefined ? '' : raw.length > 60 ? `${raw.slice(0, 57)}...` : raw
+    const call: DeskCall = { id: e.tool_use_id, kind: 'call', tool: e.tool, arg, isDone: false, isError: false }
     await update($, calls, list => [...list, call].slice(-100))
     try {
       const ran = await next(e)
@@ -201,9 +249,11 @@ export const register: Register = on => {
     const { Svg } = ui
     const s = await read($, settings)
     const look = STYLES[s.style]
+    await read($, tick)
+    const clock = new Date(await $.clock.now()).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
     lastBackdrop = e.surface
     $.ui.status(`${NAME} ${look.label} - Ready (${s.wallpaper}, scene drawn on ${e.surface})`)
-    return <Svg source={look.sceneSvg(s)} alt={`A ${look.label} style desktop with icons and a taskbar`} isInteractive />
+    return <Svg source={look.sceneSvg(s, clock)} alt={`A ${look.label} style desktop with icons and a taskbar`} isInteractive />
   })
 
   // ---------------- Start menu band above the prompt ----------------
@@ -277,7 +327,8 @@ export const register: Register = on => {
     const ui = $.ui.resolve(e)
     const { Box, Text, Button } = ui
     const Svg = 'Svg' in ui ? ui.Svg : undefined
-    const list = await read($, calls)
+    const all = await read($, calls)
+    const list = all.filter(x => x.kind === 'call')
     const s = await read($, settings)
     const look = STYLES[s.style]
     const c = look.chrome
@@ -309,6 +360,198 @@ export const register: Register = on => {
         }}
       />
     )
+
+    // The Windows 98 style draws the 1998 "Claude" chat window instead: menus,
+    // a You / tool-call log, a drive-properties pie of the context window and
+    // a Ready / Working status bar.
+    if (s.style === '98') {
+      const toolCalls = all.filter(x => x.kind === 'call')
+      const room98 = Math.max(4, Math.floor(((e.viewport?.rows ?? 30) - 14) / 2))
+      const isDismissed = await read($, isWarningDismissed)
+      const usage = await $.session.usage()
+      const ctx = usage.context
+      const percent = ctx.percent ?? (ctx.tokens !== undefined && ctx.window > 0 ? (ctx.tokens / ctx.window) * 100 : undefined)
+      const isLow = percent !== undefined && percent >= 85
+      const summary98 = [
+        `Claude 98: ${toolCalls.length} tool calls, ${running} running, ${failed} failed`,
+        `Context: ${fmtTokens(ctx.tokens)} of ${fmtTokens(ctx.window)}${percent === undefined ? '' : ` (${Math.round(percent)}%)`}`,
+      ].join('\n')
+      const compact = async (): Promise<void> => {
+        await update($, isWarningDismissed, () => true)
+        $.ui.toast('Claude 98: compacting the conversation to free space.')
+        await $.session.compact()
+      }
+      const cell = (key: string, text: string, color = c.ink, grow = false) => (
+        <Box key={key} borderStyle="single" borderColor={c.shadow} paddingX={1} flexGrow={grow ? 1 : 0}>
+          <Text color={color} wrap="truncate">
+            {text}
+          </Text>
+        </Box>
+      )
+      return (
+        <Box flexDirection="column" borderStyle={c.border} borderColor={c.frame} backgroundColor={c.body}>
+          <Box flexDirection="row" backgroundColor={look.accentOf(s.scheme)} paddingX={1} alignItems="center" gap="xs">
+            {isGraphic && <Svg source={look.iconSvg('spark', 16)} alt="" width={16} height={16} />}
+            <Box flexGrow={1}>
+              <Text color={WHITE} weight="bold">
+                Claude
+              </Text>
+            </Box>
+            {closeBox(ui, c, 'mon-close', () => $.ui.close({ id: MONITOR }))}
+          </Box>
+          <Box flexDirection="row" paddingX={1} paddingY={1} gap={1} alignItems="center">
+            {menuButton('file', 'File')}
+            {menuButton('edit', 'Edit')}
+            {menuButton('view', 'View')}
+            {menuButton('tools', 'Tools')}
+            {menuButton('help', 'Help')}
+          </Box>
+          {menu !== null && (
+            <Box flexDirection="column" marginX={1} padding={1} backgroundColor={FACE} borderStyle="single" borderColor={c.buttonEdge} gap="xs">
+              {menu === 'file' && [
+                item('m-clear', 'Clear log', () => update($, calls, () => [])),
+                item('m-close', 'Close', () => $.ui.close({ id: MONITOR })),
+              ]}
+              {menu === 'edit' && [
+                item('m-copy', 'Copy summary', async press => {
+                  const r = await $.ui.copy({ text: summary98, surface: press.surface })
+                  $.ui.toast(r.isCopied ? 'Summary copied.' : 'Could not copy the summary.')
+                }),
+              ]}
+              {menu === 'view' && [
+                item('m-pie', `${view.bars ? '[x]' : '[ ]'} Context (C:) pie`, () => update($, monitorView, v => ({ ...v, bars: !v.bars })), true),
+                item('m-log', `${view.log ? '[x]' : '[ ]'} Chat log`, () => update($, monitorView, v => ({ ...v, log: !v.log })), true),
+              ]}
+              {menu === 'tools' && [
+                item('m-compact', 'Context Cleanup (compact)...', compact),
+                item('m-display', 'Display Properties...', () => openDisplay($)),
+              ]}
+              {menu === 'help' && [
+                item('m-about', 'About Claude 98', () => $.ui.toast('Claude 98. Connected at 49,333 bps. It is now safe to keep working.')),
+              ]}
+            </Box>
+          )}
+          {isLow && !isDismissed && (
+            <Box flexDirection="column" marginX={1} borderStyle="single" borderColor={c.frame} backgroundColor={c.body}>
+              <Box backgroundColor={look.accentOf(s.scheme)} paddingX={1}>
+                <Text color={WHITE} weight="bold">
+                  Context is Low on Space
+                </Text>
+              </Box>
+              <Box flexDirection="row" padding={1} gap={1} alignItems="center">
+                <Text color="#c08000" weight="bold" size="heading">
+                  ⚠
+                </Text>
+                <Box flexDirection="column">
+                  <Text color={c.ink}>{`You are running out of context in this session (${Math.round(percent)}% used).`}</Text>
+                  <Text color={c.ink}>To free space, compact the conversation with Context Cleanup.</Text>
+                </Box>
+              </Box>
+              <Box flexDirection="row" justifyContent="center" gap={2} paddingBottom={1}>
+                {winButton(ui, c, { id: 'low-compact', label: 'Context Cleanup', isActive: true, onPress: compact })}
+                {winButton(ui, c, { id: 'low-cancel', label: 'Cancel', onPress: () => update($, isWarningDismissed, () => true) })}
+              </Box>
+            </Box>
+          )}
+          {view.bars && (
+            <Box flexDirection="column" margin={1} padding={1} gap={1} backgroundColor={c.panel} borderStyle="single" borderColor={c.shadow}>
+              <Box flexDirection="row" gap={2}>
+                <Text color={c.ink} weight="bold">
+                  Context (C:)
+                </Text>
+                <Text color={MUTED}>Type: Context window</Text>
+              </Box>
+              <Box flexDirection="row" gap={1} alignItems="center">
+                <Text color="#0000ff">■</Text>
+                <Box width={12}>
+                  <Text color={c.ink}>Used space:</Text>
+                </Box>
+                <Text color={c.ink}>{fmtTokens(ctx.tokens)}</Text>
+              </Box>
+              <Box flexDirection="row" gap={1} alignItems="center">
+                <Text color="#ff00ff">■</Text>
+                <Box width={12}>
+                  <Text color={c.ink}>Free space:</Text>
+                </Box>
+                <Text color={c.ink}>{ctx.tokens === undefined ? '—' : fmtTokens(Math.max(0, ctx.window - ctx.tokens))}</Text>
+              </Box>
+              <Box flexDirection="row" gap={1} alignItems="center">
+                <Text color={c.panel}>■</Text>
+                <Box width={12}>
+                  <Text color={c.ink}>Capacity:</Text>
+                </Box>
+                <Text color={c.ink}>{fmtTokens(ctx.window)}</Text>
+              </Box>
+              {isGraphic && (
+                <Box justifyContent="center">
+                  <Svg source={pieSvg(percent === undefined ? 0 : percent / 100)} alt={`Context ${percent === undefined ? 'unknown' : `${Math.round(percent)}% used`}`} width={200} height={100} />
+                </Box>
+              )}
+              <Box flexDirection="row" justifyContent="space-between" alignItems="center">
+                <Text color={c.ink}>{percent === undefined ? 'Context' : `Context  ${Math.round(percent)}% used`}</Text>
+                {winButton(ui, c, { id: 'pie-compact', label: 'Context Cleanup', onPress: compact })}
+              </Box>
+            </Box>
+          )}
+          {view.log && (
+            <Box flexDirection="column" marginX={1} padding={1} backgroundColor={c.panel} borderStyle="single" borderColor={c.shadow}>
+              <Box flexDirection="row" gap={1}>
+                <Text color={ORANGE} weight="bold">
+                  Claude:
+                </Text>
+                <Text color={c.ink} weight="bold">
+                  Hi! How can I help?
+                </Text>
+              </Box>
+              {all.slice(-room98).map(x =>
+                x.kind === 'you' ? (
+                  <Box key={`c-${x.id}`} flexDirection="row" gap={1} marginTop={1}>
+                    <Text color={c.number} weight="bold">
+                      You:
+                    </Text>
+                    <Text color={c.ink} weight="bold" wrap="truncate">
+                      {x.tool}
+                    </Text>
+                  </Box>
+                ) : (
+                  <Box key={`c-${x.id}`} flexDirection="column">
+                    <Box flexDirection="row" gap={1}>
+                      <Text color={x.isError ? c.error : x.isDone ? GREEN : MUTED}>●</Text>
+                      <Text color={c.ink} weight="bold">
+                        {x.tool}
+                      </Text>
+                      {x.arg !== '' && (
+                        <Text color={MUTED} wrap="truncate">
+                          {`(${x.arg})`}
+                        </Text>
+                      )}
+                    </Box>
+                    <Box paddingLeft={2}>
+                      <Text color={x.isError ? c.error : MUTED}>{x.isDone ? (x.isError ? '└ Failed' : '└ Done') : '└ Working...'}</Text>
+                    </Box>
+                  </Box>
+                ),
+              )}
+              {toolCalls.length > 0 && (
+                <Box flexDirection="row" gap={1} marginTop={1}>
+                  <Text color={ORANGE} weight="bold">
+                    Claude:
+                  </Text>
+                  <Text color={c.ink} weight="bold">
+                    {running > 0 ? 'Working on it...' : failed > 0 ? `Done, with ${failed} failed.` : `Done! Ran ${toolCalls.length} tools.`}
+                  </Text>
+                </Box>
+              )}
+            </Box>
+          )}
+          <Box flexDirection="row" paddingX={1} paddingBottom={1} gap={1}>
+            {cell('st-state', running > 0 ? 'Working...' : 'Ready', c.ink, true)}
+            {cell('st-calls', `${toolCalls.length} calls, ${failed} failed`, failed > 0 ? c.error : c.ink)}
+            {cell('st-bps', 'Connected at 49,333 bps')}
+          </Box>
+        </Box>
+      )
+    }
 
     return (
       <Box flexDirection="column" borderStyle={c.border} borderColor={c.frame} backgroundColor={c.body}>
